@@ -1,0 +1,21 @@
+{{ define "content" }}
+<div class="min-h-[70vh] flex items-center justify-center">
+  <div class="card w-full max-w-sm bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-2xl mb-2">rustymanager</h2>
+      {{ if .Error }}
+      <div class="alert alert-error mb-2">
+        <span>{{ .Error }}</span>
+      </div>
+      {{ end }}
+      <form method="POST" action="/login" class="flex flex-col gap-4">
+        <div class="form-control">
+          <label class="label"><span class="label-text">Token</span></label>
+          <input type="password" name="token" class="input input-bordered" autofocus required />
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Sign in</button>
+      </form>
+    </div>
+  </div>
+</div>
+{{ end }}
