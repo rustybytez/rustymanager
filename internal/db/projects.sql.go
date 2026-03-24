@@ -10,7 +10,7 @@ import (
 )
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (name, description, status) VALUES (?, ?, ?) RETURNING id, name, description, status, created_at, updated_at
+INSERT INTO projects (name, description, status) VALUES (?, ?, ?) RETURNING id, name, description, status, created_at, updated_at, created_by, updated_by
 `
 
 type CreateProjectParams struct {
@@ -29,6 +29,8 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
 	)
 	return i, err
 }
@@ -43,7 +45,7 @@ func (q *Queries) DeleteProject(ctx context.Context, id int64) error {
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, name, description, status, created_at, updated_at FROM projects WHERE id = ? LIMIT 1
+SELECT id, name, description, status, created_at, updated_at, created_by, updated_by FROM projects WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
@@ -56,12 +58,14 @@ func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
 	)
 	return i, err
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT id, name, description, status, created_at, updated_at FROM projects ORDER BY created_at DESC
+SELECT id, name, description, status, created_at, updated_at, created_by, updated_by FROM projects ORDER BY created_at DESC
 `
 
 func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
@@ -80,6 +84,8 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -101,7 +107,7 @@ SET name        = ?,
     status      = ?,
     updated_at  = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 WHERE id = ?
-RETURNING id, name, description, status, created_at, updated_at
+RETURNING id, name, description, status, created_at, updated_at, created_by, updated_by
 `
 
 type UpdateProjectParams struct {
@@ -126,6 +132,8 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
 	)
 	return i, err
 }

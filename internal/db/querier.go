@@ -9,11 +9,22 @@ import (
 )
 
 type Querier interface {
+	CreateKanbanItem(ctx context.Context, arg CreateKanbanItemParams) (KanbanItem, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
+	CreateUser(ctx context.Context, name string) (User, error)
+	DeleteKanbanItem(ctx context.Context, id int64) error
 	DeleteProject(ctx context.Context, id int64) error
+	DeleteUser(ctx context.Context, id int64) error
+	GetKanbanItem(ctx context.Context, id int64) (KanbanItem, error)
 	GetProject(ctx context.Context, id int64) (Project, error)
+	GetUser(ctx context.Context, id int64) (User, error)
+	ListKanbanItemsByProject(ctx context.Context, projectID int64) ([]ListKanbanItemsByProjectRow, error)
 	ListProjects(ctx context.Context) ([]Project, error)
+	ListUsers(ctx context.Context) ([]User, error)
+	UpdateKanbanItem(ctx context.Context, arg UpdateKanbanItemParams) (KanbanItem, error)
+	UpdateKanbanItemStatus(ctx context.Context, arg UpdateKanbanItemStatusParams) (KanbanItem, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

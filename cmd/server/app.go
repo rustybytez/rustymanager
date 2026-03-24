@@ -92,5 +92,19 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.POST("/projects/:id", h.Update)
 	p.POST("/projects/:id/delete", h.Delete)
 
+	u := handler.NewUsers(s)
+	p.GET("/users", u.Index)
+	p.GET("/users/new", u.New)
+	p.POST("/users", u.Create)
+	p.GET("/users/:id/edit", u.Edit)
+	p.POST("/users/:id", u.Update)
+	p.POST("/users/:id/delete", u.Delete)
+
+	k := handler.NewKanban(s)
+	p.GET("/projects/:id/kanban/new", k.New)
+	p.POST("/projects/:id/kanban", k.Create)
+	p.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
+	p.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
+
 	return e, nil
 }

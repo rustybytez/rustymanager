@@ -5,5 +5,7 @@ CREATE TABLE IF NOT EXISTS projects (
     status      TEXT     NOT NULL DEFAULT 'active'
                          CHECK (status IN ('active', 'archived')),
     created_at  DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-    updated_at  DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    updated_at  DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    created_by  INTEGER  REFERENCES users(id),
+    updated_by  INTEGER  REFERENCES users(id)
 );

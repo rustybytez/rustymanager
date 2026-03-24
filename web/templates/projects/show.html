@@ -1,14 +1,99 @@
 {{ define "content" }}
-<div class="max-w-lg mx-auto">
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">{{ .Project.Name }}</h1>
-    <span class="badge badge-outline">{{ .Project.Status }}</span>
+<div>
+  <div class="flex justify-between items-center mb-2">
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-bold">{{ .Project.Name }}</h1>
+      <span class="badge badge-outline">{{ .Project.Status }}</span>
+    </div>
+    <div class="flex gap-2">
+      <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add Item</a>
+      <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm">Edit</a>
+      <a href="/projects" class="btn btn-ghost btn-sm">Back</a>
+    </div>
   </div>
-  <p class="mb-6 text-base-content/70">{{ .Project.Description }}</p>
-  <p class="text-sm text-base-content/50 mb-6">Created {{ .Project.CreatedAt.Format "2006-01-02" }}</p>
-  <div class="flex gap-2">
-    <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-primary">Edit</a>
-    <a href="/projects" class="btn btn-ghost">Back</a>
+  {{ if .Project.Description }}
+  <p class="text-base-content/60 mb-6">{{ .Project.Description }}</p>
+  {{ end }}
+
+  <!-- Kanban board -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+
+    <!-- To Do -->
+    <div class="bg-base-200 rounded-xl p-4">
+      <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">To Do</h2>
+      <div class="flex flex-col gap-2">
+        {{ range .Items }}{{ if eq .Status "todo" }}
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body p-3">
+            <p class="font-medium text-sm">{{ .Title }}</p>
+            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+            <div class="flex gap-1 mt-2 justify-end">
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="in_progress" />
+                <button class="btn btn-xs btn-ghost">→ In Progress</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                <button class="btn btn-xs btn-ghost text-error">✕</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{ end }}{{ end }}
+      </div>
+    </div>
+
+    <!-- In Progress -->
+    <div class="bg-base-200 rounded-xl p-4">
+      <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">In Progress</h2>
+      <div class="flex flex-col gap-2">
+        {{ range .Items }}{{ if eq .Status "in_progress" }}
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body p-3">
+            <p class="font-medium text-sm">{{ .Title }}</p>
+            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+            <div class="flex gap-1 mt-2 justify-end">
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="todo" />
+                <button class="btn btn-xs btn-ghost">← To Do</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="done" />
+                <button class="btn btn-xs btn-ghost">→ Done</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                <button class="btn btn-xs btn-ghost text-error">✕</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{ end }}{{ end }}
+      </div>
+    </div>
+
+    <!-- Done -->
+    <div class="bg-base-200 rounded-xl p-4">
+      <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">Done</h2>
+      <div class="flex flex-col gap-2">
+        {{ range .Items }}{{ if eq .Status "done" }}
+        <div class="card bg-base-100 shadow-sm border border-success/20">
+          <div class="card-body p-3">
+            <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
+            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
+            <div class="flex gap-1 mt-2 justify-end">
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="in_progress" />
+                <button class="btn btn-xs btn-ghost">← In Progress</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                <button class="btn btn-xs btn-ghost text-error">✕</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{ end }}{{ end }}
+      </div>
+    </div>
+
   </div>
 </div>
 {{ end }}

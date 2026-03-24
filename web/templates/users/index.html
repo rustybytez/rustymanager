@@ -1,0 +1,39 @@
+{{ define "content" }}
+<div class="max-w-2xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Users</h1>
+    <a href="/users/new" class="btn btn-primary btn-sm">New User</a>
+  </div>
+  {{ if .Users }}
+  <div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .Users }}
+        <tr>
+          <td class="text-base-content/50">{{ .ID }}</td>
+          <td class="font-medium">{{ .Name }}</td>
+          <td class="text-sm text-base-content/50">{{ .CreatedAt.Format "2006-01-02" }}</td>
+          <td class="text-right">
+            <a href="/users/{{ .ID }}/edit" class="btn btn-ghost btn-xs">Edit</a>
+            <form method="POST" action="/users/{{ .ID }}/delete" class="inline">
+              <button class="btn btn-ghost btn-xs text-error">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+  {{ else }}
+  <p class="text-base-content/50">No users yet. <a href="/users/new" class="link">Create one.</a></p>
+  {{ end }}
+</div>
+{{ end }}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"strings"
 
 	"rustymanager/internal/db"
 )
@@ -12,8 +13,19 @@ import (
 var migrations string
 
 func Migrate(database *sql.DB) error {
-	_, err := database.ExecContext(context.Background(), migrations)
-	return err
+	for _, stmt := range strings.Split(migrations, ";") {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := database.ExecContext(context.Background(), stmt); err != nil {
+			// ALTER TABLE ADD COLUMN fails if the column already exists; that's fine.
+			if !strings.Contains(err.Error(), "duplicate column name") {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 type Store struct {

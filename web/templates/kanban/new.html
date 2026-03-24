@@ -1,0 +1,32 @@
+{{ define "content" }}
+<div class="max-w-md mx-auto">
+  <h1 class="text-2xl font-bold mb-6">New Kanban Item</h1>
+  <form method="POST" action="/projects/{{ .ProjectID }}/kanban" class="flex flex-col gap-4">
+    <div class="form-control">
+      <label class="label"><span class="label-text">Title</span></label>
+      <input type="text" name="title" class="input input-bordered" required autofocus />
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Assignee</span></label>
+      <select name="assignee_id" class="select select-bordered">
+        <option value="">— unassigned —</option>
+        {{ range .Users }}
+        <option value="{{ .ID }}">{{ .Name }}</option>
+        {{ end }}
+      </select>
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Status</span></label>
+      <select name="status" class="select select-bordered">
+        <option value="todo">To Do</option>
+        <option value="in_progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <div class="flex gap-2 mt-2">
+      <button type="submit" class="btn btn-primary">Add Item</button>
+      <a href="/projects/{{ .ProjectID }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{{ end }}

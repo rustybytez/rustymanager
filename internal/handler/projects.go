@@ -54,8 +54,13 @@ func (h *Projects) Show(c echo.Context) error {
 	if err != nil {
 		return echo.ErrNotFound
 	}
+	items, err := h.store.Queries().ListKanbanItemsByProject(context.Background(), id)
+	if err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, "projects/show.html", map[string]any{
 		"Project": project,
+		"Items":   items,
 	})
 }
 

@@ -5,14 +5,38 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 )
 
+type KanbanItem struct {
+	ID         int64         `json:"id"`
+	ProjectID  int64         `json:"project_id"`
+	Title      string        `json:"title"`
+	AssigneeID sql.NullInt64 `json:"assignee_id"`
+	Status     string        `json:"status"`
+	CreatedAt  time.Time     `json:"created_at"`
+	UpdatedAt  time.Time     `json:"updated_at"`
+	CreatedBy  sql.NullInt64 `json:"created_by"`
+	UpdatedBy  sql.NullInt64 `json:"updated_by"`
+}
+
 type Project struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          int64         `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Status      string        `json:"status"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+	CreatedBy   sql.NullInt64 `json:"created_by"`
+	UpdatedBy   sql.NullInt64 `json:"updated_by"`
+}
+
+type User struct {
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	CreatedBy sql.NullInt64 `json:"created_by"`
+	UpdatedBy sql.NullInt64 `json:"updated_by"`
 }
