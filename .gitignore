@@ -1,4 +1,6 @@
 web/static/css/app.css
 bin/
+tmp/
+data/
 *.db
 .env

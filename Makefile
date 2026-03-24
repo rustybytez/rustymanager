@@ -1,4 +1,4 @@
-.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev
+.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools
 
 TAILWIND_VERSION ?= v3.4.17
 PORT             ?= 8080
@@ -12,6 +12,9 @@ $(TAILWIND_BIN):
 	curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/download/$(TAILWIND_VERSION)/tailwindcss-$(_OS)-$(_ARCH)" \
 		-o $(TAILWIND_BIN)
 	chmod +x $(TAILWIND_BIN)
+
+install-dev-tools: $(TAILWIND_BIN)
+	go mod download
 
 tailwind-install: $(TAILWIND_BIN)
 
@@ -36,7 +39,7 @@ test-pkg:
 	go test ./$(PKG)/...
 
 lint:
-	golangci-lint run
+	go tool golangci-lint run
 
 fmt:
 	go fmt ./...
@@ -51,7 +54,7 @@ css-watch: $(TAILWIND_BIN)
 	$(TAILWIND_BIN) -i assets/css/app.css -o web/static/css/app.css --watch
 
 generate:
-	sqlc generate
+	go tool sqlc generate
 
 docker-build:
 	docker build -t rustymanager:latest .
@@ -60,4 +63,4 @@ docker-run:
 	docker run --rm -p 8080:8080 rustymanager:latest
 
 dev: css
-	go run ./cmd/server
+	go tool air

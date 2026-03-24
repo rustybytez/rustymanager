@@ -72,6 +72,10 @@ func newApp(dsn string) (*echo.Echo, error) {
 	}
 	e.Renderer = rend
 
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
 	a := handler.NewAuth()
 	e.GET("/login", a.LoginPage)
 	e.POST("/login", a.Login)

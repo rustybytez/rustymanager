@@ -10,6 +10,10 @@ import (
 func main() {
 	_ = godotenv.Load()
 
+	if os.Getenv("AUTH_TOKEN") == "" {
+		log.Fatal("AUTH_TOKEN is required")
+	}
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = "rustymanager.db"

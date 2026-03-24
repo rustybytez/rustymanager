@@ -24,7 +24,8 @@ make fmt            # go fmt ./...
 make tidy           # go mod tidy
 make css            # build Tailwind CSS → web/static/css/app.css (downloads bin/tailwindcss if missing)
 make css-watch      # watch mode for CSS
-make tailwind-install  # explicitly download bin/tailwindcss (v3.4.17 by default)
+make tailwind-install       # explicitly download bin/tailwindcss (v3.4.17 by default)
+make install-dev-tools      # install all dev tools: tailwindcss, air, sqlc, golangci-lint
 make generate       # sqlc generate (re-run after changing sql/ files)
 make docker-build   # build Docker image (rustymanager:latest)
 make docker-run     # run container on port 8080
