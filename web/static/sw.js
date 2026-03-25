@@ -14,13 +14,7 @@ self.addEventListener('push', function (e) {
     tag: 'chat-' + (data.url || 'default'),
     renotify: true,
   };
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
-      var anyVisible = list.some(function (c) { return c.visibilityState === 'visible'; });
-      if (anyVisible) return;
-      return self.registration.showNotification(title, options);
-    })
-  );
+  e.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', function (e) {

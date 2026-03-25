@@ -55,7 +55,7 @@ func (s *Sender) Send(ctx context.Context, title, body, url string) {
 		}, &webpush.Options{
 			VAPIDPublicKey:  s.vapidPublicKey,
 			VAPIDPrivateKey: s.vapidPrivateKey,
-			TTL:             60,
+			TTL:             86400,
 		})
 		if err != nil {
 			log.Printf("push: send to %s: %v", sub.Endpoint, err)
