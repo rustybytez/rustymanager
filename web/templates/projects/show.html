@@ -125,7 +125,6 @@
     <div class="mt-4 md:mt-8">
       <div class="flex items-center gap-3 mb-3">
         <h2 class="text-lg font-semibold">Project Chat</h2>
-        <span id="push-status" class="text-xs text-base-content/40"></span>
       </div>
 
       <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 md:h-64 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
@@ -251,12 +250,6 @@ window.addEventListener('resize', initTabs);
     return output;
   }
 
-  function setPushStatus(text, ok) {
-    var el = document.getElementById('push-status');
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'text-xs ' + (ok === true ? 'text-success' : ok === false ? 'text-error' : 'text-base-content/40');
-  }
 
   var EXPIRY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
@@ -273,7 +266,7 @@ window.addEventListener('resize', initTabs);
     }).then(function (res) {
       if (!res.ok) throw new Error('server returned ' + res.status);
       pushActive = true;
-      setPushStatus('🔔 notifications on', true);
+
       console.log('[push] active:', sub.endpoint);
     });
   }
@@ -288,10 +281,10 @@ window.addEventListener('resize', initTabs);
 
   function subscribeToPush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setPushStatus('push not supported', false);
+
       return;
     }
-    setPushStatus('subscribing…', null);
+
     console.log('[push] waiting for service worker…');
     navigator.serviceWorker.ready.then(function (reg) {
       return Promise.all([
@@ -322,7 +315,6 @@ window.addEventListener('resize', initTabs);
           });
       });
     }).catch(function (err) {
-      setPushStatus('notifications unavailable', false);
       console.warn('[push] subscribe failed:', err);
     });
   }

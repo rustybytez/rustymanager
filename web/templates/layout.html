@@ -15,17 +15,7 @@
     </div>
     <div class="flex-none gap-2 flex items-center">
       {{ if .CurrentUser }}
-      <div class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-1">
-          <span>{{ .CurrentUser.Name }}</span>
-          <svg class="w-4 h-4 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </div>
-        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-50 w-44 p-2 shadow-lg border border-base-300">
-          <li><a href="/settings">Settings</a></li>
-        </ul>
-      </div>
+      <a href="/settings" class="btn btn-ghost btn-sm">{{ .CurrentUser.Name }}</a>
       {{ else }}
       <form method="POST" action="/logout">
         <button class="btn btn-ghost btn-sm">Logout</button>
