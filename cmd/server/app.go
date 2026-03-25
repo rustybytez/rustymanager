@@ -122,7 +122,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 	vapidPub, vapidPriv := loadVAPIDKeys()
 	vapidSubscriber := os.Getenv("VAPID_SUBSCRIBER")
 	if vapidSubscriber == "" {
-		vapidSubscriber = "mailto:admin@example.com"
+		vapidSubscriber = "admin@example.com"
 	}
 	pushSender := push.NewSender(queries, vapidPub, vapidPriv, vapidSubscriber)
 	pushHandler := push.NewHandler(queries, vapidPub)
