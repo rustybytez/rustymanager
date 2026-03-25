@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"rustymanager/internal/db"
+	authmw "rustymanager/internal/middleware"
 	"rustymanager/internal/store"
 )
 
@@ -79,4 +80,44 @@ func (h *Users) Delete(c echo.Context) error {
 		return err
 	}
 	return c.Redirect(http.StatusSeeOther, "/users")
+}
+
+func (h *Users) SelectPage(c echo.Context) error {
+	users, err := h.store.Queries().ListUsers(context.Background())
+	if err != nil {
+		return err
+	}
+	return c.Render(http.StatusOK, "select-user.html", map[string]any{
+		"Users": users,
+	})
+}
+
+func (h *Users) Select(c echo.Context) error {
+	idStr := c.FormValue("user_id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	if _, err := h.store.Queries().GetUser(context.Background(), id); err != nil {
+		return echo.ErrBadRequest
+	}
+	cookie := new(http.Cookie)
+	cookie.Name = authmw.UserCookieName
+	cookie.Value = idStr
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.SameSite = http.SameSiteStrictMode
+	cookie.MaxAge = 365 * 24 * 60 * 60
+	c.SetCookie(cookie)
+	return c.Redirect(http.StatusSeeOther, "/projects")
+}
+
+func (h *Users) SwitchUser(c echo.Context) error {
+	cookie := new(http.Cookie)
+	cookie.Name = authmw.UserCookieName
+	cookie.Value = ""
+	cookie.Path = "/"
+	cookie.MaxAge = -1
+	c.SetCookie(cookie)
+	return c.Redirect(http.StatusSeeOther, "/select-user")
 }

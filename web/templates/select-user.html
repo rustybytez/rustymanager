@@ -1,0 +1,19 @@
+{{ define "content" }}
+<div class="flex flex-col items-center justify-center min-h-[60vh]">
+  <div class="card bg-base-200 w-full max-w-sm shadow-md">
+    <div class="card-body">
+      <h2 class="card-title text-xl mb-1">Who are you?</h2>
+      <p class="text-sm text-base-content/60 mb-4">Select your name to continue.</p>
+      <div class="flex flex-col gap-2">
+        {{ range .Users }}
+        <form method="POST" action="/select-user">
+          <input type="hidden" name="user_id" value="{{ .ID }}" />
+          <button class="btn btn-outline w-full justify-start">{{ .Name }}</button>
+        </form>
+        {{ end }}
+        {{ if not .Users }}<p class="text-sm text-base-content/40 text-center py-4">No users yet. <a href="/users/new" class="link">Create one</a>.</p>{{ end }}
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}

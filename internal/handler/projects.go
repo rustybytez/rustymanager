@@ -59,14 +59,9 @@ func (h *Projects) Show(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	users, err := h.store.Queries().ListUsers(context.Background())
-	if err != nil {
-		return err
-	}
 	return c.Render(http.StatusOK, "projects/show.html", map[string]any{
 		"Project": project,
 		"Items":   items,
-		"Users":   users,
 	})
 }
 

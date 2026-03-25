@@ -39,12 +39,8 @@ func (h *Auth) Login(c echo.Context) error {
 }
 
 func (h *Auth) Logout(c echo.Context) error {
-	cookie := new(http.Cookie)
-	cookie.Name = authmw.CookieName
-	cookie.Value = ""
-	cookie.Path = "/"
-	cookie.MaxAge = -1
-	c.SetCookie(cookie)
-
+	for _, name := range []string{authmw.CookieName, authmw.UserCookieName} {
+		c.SetCookie(&http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
+	}
 	return c.Redirect(http.StatusSeeOther, "/login")
 }

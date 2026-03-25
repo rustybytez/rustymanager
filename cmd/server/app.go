@@ -42,6 +42,11 @@ func (r *renderer) Render(w io.Writer, name string, data any, c echo.Context) er
 	if _, err = t.ParseFS(r.fsys, "templates/"+name); err != nil {
 		return err
 	}
+	if m, ok := data.(map[string]any); ok {
+		if user := c.Get(authmw.CurrentUserKey); user != nil {
+			m["CurrentUser"] = user
+		}
+	}
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
@@ -98,51 +103,62 @@ func newApp(dsn string) (*echo.Echo, error) {
 	a := handler.NewAuth()
 	e.GET("/login", a.LoginPage)
 	e.POST("/login", a.Login)
-	e.POST("/logout", a.Logout)
 
+	// Auth-protected group (no user selection required)
 	p := e.Group("")
 	p.Use(authmw.RequireAuth)
+	p.POST("/logout", a.Logout)
+
+	u := handler.NewUsers(s)
+	p.GET("/select-user", u.SelectPage)
+	p.POST("/select-user", u.Select)
+	p.POST("/switch-user", u.SwitchUser)
+
+	// Auth + user-selection required
+	r := p.Group("")
+	r.Use(authmw.RequireUser(s))
 
 	vapidPub, vapidPriv := loadVAPIDKeys()
 	pushSender := push.NewSender(queries, vapidPub, vapidPriv)
 	pushHandler := push.NewHandler(queries, vapidPub)
-	p.GET("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
-	p.POST("/push/subscribe", pushHandler.Subscribe)
-	p.DELETE("/push/subscribe", pushHandler.Unsubscribe)
+	r.GET("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
+	r.POST("/push/subscribe", pushHandler.Subscribe)
+	r.DELETE("/push/subscribe", pushHandler.Unsubscribe)
+
+	r.GET("/settings", handler.Settings)
 
 	h := handler.NewProjects(s)
-	p.GET("/", func(c echo.Context) error {
+	r.GET("/", func(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/projects")
 	})
-	p.GET("/projects", h.Index)
-	p.GET("/projects/new", h.New)
-	p.POST("/projects", h.Create)
-	p.GET("/projects/:id", h.Show)
-	p.GET("/projects/:id/edit", h.Edit)
-	p.POST("/projects/:id", h.Update)
-	p.POST("/projects/:id/delete", h.Delete)
+	r.GET("/projects", h.Index)
+	r.GET("/projects/new", h.New)
+	r.POST("/projects", h.Create)
+	r.GET("/projects/:id", h.Show)
+	r.GET("/projects/:id/edit", h.Edit)
+	r.POST("/projects/:id", h.Update)
+	r.POST("/projects/:id/delete", h.Delete)
 
-	u := handler.NewUsers(s)
-	p.GET("/users", u.Index)
-	p.GET("/users/new", u.New)
-	p.POST("/users", u.Create)
-	p.GET("/users/:id/edit", u.Edit)
-	p.POST("/users/:id", u.Update)
-	p.POST("/users/:id/delete", u.Delete)
+	r.GET("/users", u.Index)
+	r.GET("/users/new", u.New)
+	r.POST("/users", u.Create)
+	r.GET("/users/:id/edit", u.Edit)
+	r.POST("/users/:id", u.Update)
+	r.POST("/users/:id/delete", u.Delete)
 
 	k := handler.NewKanban(s)
-	p.GET("/projects/:id/kanban/new", k.New)
-	p.POST("/projects/:id/kanban", k.Create)
-	p.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
-	p.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
-	p.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
+	r.GET("/projects/:id/kanban/new", k.New)
+	r.POST("/projects/:id/kanban", k.Create)
+	r.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
+	r.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
+	r.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
 
 	chat := handler.NewChatChannel(queries, pushSender)
-	p.GET("/projects/:id/ws", chat.HandleWS)
-	p.GET("/projects/:id/chat/history", chat.HandleHistory)
+	r.GET("/projects/:id/ws", chat.HandleWS)
+	r.GET("/projects/:id/chat/history", chat.HandleHistory)
 
 	commits := handler.NewCommits(s)
-	p.GET("/projects/:id/commits", commits.List)
+	r.GET("/projects/:id/commits", commits.List)
 
 	return e, nil
 }

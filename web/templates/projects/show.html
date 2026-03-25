@@ -128,15 +128,6 @@
         <span id="push-status" class="text-xs text-base-content/40"></span>
       </div>
 
-      <div class="mb-3">
-        <select id="chat-user" class="select select-bordered select-sm">
-          <option value="">— select your name —</option>
-          {{ range .Users }}
-          <option value="{{ .ID }}">{{ .Name }}</option>
-          {{ end }}
-        </select>
-      </div>
-
       <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 md:h-64 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
 
       <div class="flex gap-2">
@@ -149,7 +140,7 @@
 
 <!-- Bottom nav (mobile only) -->
 <div class="btm-nav md:hidden z-20 border-t border-base-300 bg-base-100">
-  <button data-tab="kanban" onclick="switchTab('kanban')" class="active">
+  <button data-tab="kanban" onclick="switchTab('kanban')">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
     </svg>
@@ -163,7 +154,7 @@
     <span class="btm-nav-label">GitHub</span>
   </button>
   {{ end }}
-  <button data-tab="chat" onclick="switchTab('chat')">
+  <button data-tab="chat" onclick="switchTab('chat')" class="active">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
@@ -193,7 +184,7 @@ function switchTab(name) {
 
 function initTabs() {
   if (isMobile()) {
-    switchTab('kanban');
+    switchTab('chat');
   } else {
     TABS.forEach(function(tab) {
       var el = document.getElementById('section-' + tab);
@@ -247,11 +238,7 @@ window.addEventListener('resize', initTabs);
 
   var pushActive = false;
 
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission().then(function (perm) {
-      if (perm === 'granted') subscribeToPush();
-    });
-  } else if ('Notification' in window && Notification.permission === 'granted') {
+  if ('Notification' in window && Notification.permission === 'granted') {
     subscribeToPush();
   }
 
@@ -387,28 +374,7 @@ window.addEventListener('resize', initTabs);
     if (this.scrollTop === 0) loadOlderMessages();
   });
 
-  const COOKIE_NAME = 'chat_user_id';
-
-  function getCookie(name) {
-    return document.cookie.split('; ').reduce(function (acc, pair) {
-      const [k, v] = pair.split('=');
-      return k === name ? decodeURIComponent(v) : acc;
-    }, '');
-  }
-
-  function setCookie(name, value) {
-    document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
-  }
-
-  const saved = getCookie(COOKIE_NAME);
-  if (saved) {
-    const sel = document.getElementById('chat-user');
-    sel.value = saved;
-  }
-
-  document.getElementById('chat-user').addEventListener('change', function () {
-    setCookie(COOKIE_NAME, this.value);
-  });
+  const currentUserID = {{ .CurrentUser.ID }};
 
   function escapeHTML(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -441,11 +407,10 @@ window.addEventListener('resize', initTabs);
   };
 
   function send() {
-    const userID = parseInt(document.getElementById('chat-user').value, 10);
     const input = document.getElementById('chat-input');
     const content = input.value.trim();
-    if (!content || !userID) return;
-    ws.send(JSON.stringify({ user_id: userID, content: content }));
+    if (!content) return;
+    ws.send(JSON.stringify({ user_id: currentUserID, content: content }));
     input.value = '';
   }
 
