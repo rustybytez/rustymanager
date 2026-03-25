@@ -22,5 +22,10 @@
   <main class="container mx-auto px-4">
     {{ template "content" . }}
   </main>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
 </body>
 </html>{{ end }}

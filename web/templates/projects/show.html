@@ -117,7 +117,10 @@
 
   <!-- Chat -->
   <div class="mt-8">
-    <h2 class="text-lg font-semibold mb-3">Project Chat</h2>
+    <div class="flex items-center gap-3 mb-3">
+      <h2 class="text-lg font-semibold">Project Chat</h2>
+      <span id="push-status" class="text-xs text-base-content/40"></span>
+    </div>
 
     <div class="mb-3">
       <select id="chat-user" class="select select-bordered select-sm">
@@ -179,7 +182,99 @@
   const ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
 
   if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+    Notification.requestPermission().then(function (perm) {
+      if (perm === 'granted') subscribeToPush();
+    });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    subscribeToPush();
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var raw = atob(base64);
+    var output = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) { output[i] = raw.charCodeAt(i); }
+    return output;
+  }
+
+  function setPushStatus(text, ok) {
+    var el = document.getElementById('push-status');
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'text-xs ' + (ok === true ? 'text-success' : ok === false ? 'text-error' : 'text-base-content/40');
+  }
+
+  // Resubscribe if expiring within this many ms (24 hours).
+  var EXPIRY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+  function isExpiringSoon(sub) {
+    if (!sub.expirationTime) return false;
+    return sub.expirationTime - Date.now() < EXPIRY_THRESHOLD_MS;
+  }
+
+  function saveSubscription(sub) {
+    return fetch('/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub),
+    }).then(function (res) {
+      if (!res.ok) throw new Error('server returned ' + res.status);
+      setPushStatus('🔔 notifications on', true);
+      console.log('[push] active:', sub.endpoint);
+    });
+  }
+
+  function freshSubscribe(reg, vapidKey) {
+    console.log('[push] creating new subscription…');
+    return reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey),
+    });
+  }
+
+  function subscribeToPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPushStatus('push not supported', false);
+      return;
+    }
+    setPushStatus('subscribing…', null);
+    console.log('[push] waiting for service worker…');
+    navigator.serviceWorker.ready.then(function (reg) {
+      return Promise.all([
+        reg.pushManager.getSubscription(),
+        fetch('/push/vapid-public-key').then(function (r) { return r.json(); }),
+      ]).then(function (results) {
+        var existing = results[0];
+        var vapidKey = results[1].public_key;
+
+        if (existing && !isExpiringSoon(existing)) {
+          // Valid subscription — just ensure the server has it.
+          console.log('[push] reusing existing subscription');
+          return saveSubscription(existing);
+        }
+
+        // Expired, expiring soon, or no subscription — get a fresh one.
+        var unsubPromise = existing ? existing.unsubscribe() : Promise.resolve();
+        return unsubPromise
+          .then(function () { return freshSubscribe(reg, vapidKey); })
+          .then(function (sub) { return saveSubscription(sub); })
+          .catch(function (err) {
+            // Key mismatch from a previous key: force unsubscribe and retry once.
+            if (err.name === 'InvalidStateError' || (err.message && err.message.includes('application server key'))) {
+              console.warn('[push] key mismatch, forcing resubscribe…');
+              return reg.pushManager.getSubscription()
+                .then(function (s) { return s ? s.unsubscribe() : null; })
+                .then(function () { return freshSubscribe(reg, vapidKey); })
+                .then(function (sub) { return saveSubscription(sub); });
+            }
+            throw err;
+          });
+      });
+    }).catch(function (err) {
+      setPushStatus('notifications unavailable', false);
+      console.warn('[push] subscribe failed:', err);
+    });
   }
 
   function showNotification(msg) {

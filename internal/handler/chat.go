@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 	"sync"
@@ -15,17 +16,24 @@ import (
 	"rustymanager/internal/db"
 )
 
+// PushSender sends a push notification to all subscribed browsers.
+type PushSender interface {
+	Send(ctx context.Context, title, body, url string)
+}
+
 // ChatChannel manages WebSocket clients grouped by project.
 type ChatChannel struct {
 	mu      sync.RWMutex
 	rooms   map[int64]map[*chatClient]bool
 	queries db.Querier
+	push    PushSender
 }
 
-func NewChatChannel(q db.Querier) *ChatChannel {
+func NewChatChannel(q db.Querier, ps PushSender) *ChatChannel {
 	return &ChatChannel{
 		rooms:   make(map[int64]map[*chatClient]bool),
 		queries: q,
+		push:    ps,
 	}
 }
 
@@ -194,6 +202,18 @@ func (c *chatClient) readPump(ctx context.Context) {
 			continue
 		}
 		c.ch.broadcast(c.projectID, b)
+
+		if c.ch.push != nil {
+			project, err := c.ch.queries.GetProject(ctx, c.projectID)
+			projectName := fmt.Sprintf("project %d", c.projectID)
+			if err == nil {
+				projectName = project.Name
+			}
+			title := "New message in " + projectName
+			body := userName + ": " + out.Content
+			url := fmt.Sprintf("/projects/%d", c.projectID)
+			go c.ch.push.Send(context.Background(), title, body, url)
+		}
 	}
 }
 

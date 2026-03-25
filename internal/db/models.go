@@ -42,6 +42,14 @@ type Project struct {
 	GithubRepo  string        `json:"github_repo"`
 }
 
+type PushSubscription struct {
+	ID        int64     `json:"id"`
+	Endpoint  string    `json:"endpoint"`
+	P256dh    string    `json:"p256dh"`
+	Auth      string    `json:"auth"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type User struct {
 	ID        int64         `json:"id"`
 	Name      string        `json:"name"`

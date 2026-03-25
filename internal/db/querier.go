@@ -15,6 +15,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, name string) (User, error)
 	DeleteKanbanItem(ctx context.Context, id int64) error
 	DeleteProject(ctx context.Context, id int64) error
+	DeletePushSubscription(ctx context.Context, endpoint string) error
 	DeleteUser(ctx context.Context, id int64) error
 	GetKanbanItem(ctx context.Context, id int64) (KanbanItem, error)
 	GetProject(ctx context.Context, id int64) (Project, error)
@@ -22,12 +23,14 @@ type Querier interface {
 	ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error)
 	ListKanbanItemsByProject(ctx context.Context, projectID int64) ([]ListKanbanItemsByProjectRow, error)
 	ListProjects(ctx context.Context) ([]Project, error)
+	ListPushSubscriptions(ctx context.Context) ([]ListPushSubscriptionsRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
 	SoftDeleteDoneKanbanItems(ctx context.Context, projectID int64) error
 	UpdateKanbanItem(ctx context.Context, arg UpdateKanbanItemParams) (KanbanItem, error)
 	UpdateKanbanItemStatus(ctx context.Context, arg UpdateKanbanItemStatusParams) (KanbanItem, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpsertPushSubscription(ctx context.Context, arg UpsertPushSubscriptionParams) error
 }
 
 var _ Querier = (*Queries)(nil)

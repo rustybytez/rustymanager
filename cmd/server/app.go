@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -15,6 +16,7 @@ import (
 	"rustymanager/internal/db"
 	"rustymanager/internal/handler"
 	authmw "rustymanager/internal/middleware"
+	"rustymanager/internal/push"
 	"rustymanager/internal/store"
 	"rustymanager/web"
 )
@@ -43,6 +45,10 @@ func (r *renderer) Render(w io.Writer, name string, data any, c echo.Context) er
 	return t.ExecuteTemplate(w, "layout", data)
 }
 
+func loadVAPIDKeys() (pubKey, privKey string) {
+	return os.Getenv("VAPID_PUBLIC_KEY"), os.Getenv("VAPID_PRIVATE_KEY")
+}
+
 func newApp(dsn string) (*echo.Echo, error) {
 	database, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -66,6 +72,19 @@ func newApp(dsn string) (*echo.Echo, error) {
 	}
 	e.StaticFS("/static", staticSub)
 
+	// Service workers must be served from the root path to control all pages.
+	e.GET("/sw.js", func(c echo.Context) error {
+		f, err := web.FS.Open("static/sw.js")
+		if err != nil {
+			return echo.ErrNotFound
+		}
+		defer f.Close()
+		c.Response().Header().Set("Content-Type", "application/javascript")
+		c.Response().Header().Set("Service-Worker-Allowed", "/")
+		_, err = io.Copy(c.Response().Writer, f)
+		return err
+	})
+
 	rend, err := newRenderer(web.FS)
 	if err != nil {
 		return nil, err
@@ -83,6 +102,13 @@ func newApp(dsn string) (*echo.Echo, error) {
 
 	p := e.Group("")
 	p.Use(authmw.RequireAuth)
+
+	vapidPub, vapidPriv := loadVAPIDKeys()
+	pushSender := push.NewSender(queries, vapidPub, vapidPriv)
+	pushHandler := push.NewHandler(queries, vapidPub)
+	p.GET("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
+	p.POST("/push/subscribe", pushHandler.Subscribe)
+	p.DELETE("/push/subscribe", pushHandler.Unsubscribe)
 
 	h := handler.NewProjects(s)
 	p.GET("/", func(c echo.Context) error {
@@ -111,7 +137,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
 	p.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
 
-	chat := handler.NewChatChannel(queries)
+	chat := handler.NewChatChannel(queries, pushSender)
 	p.GET("/projects/:id/ws", chat.HandleWS)
 
 	commits := handler.NewCommits(s)

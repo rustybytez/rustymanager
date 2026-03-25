@@ -1,4 +1,4 @@
-.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools
+.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools vapid
 
 TAILWIND_VERSION ?= v3.4.17
 PORT             ?= 8080
@@ -55,6 +55,9 @@ css-watch: $(TAILWIND_BIN)
 
 generate:
 	go tool sqlc generate
+
+vapid:
+	go run ./cmd/vapid
 
 docker-build:
 	docker build -t rustymanager:latest .
