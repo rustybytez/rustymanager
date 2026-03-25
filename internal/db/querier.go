@@ -23,6 +23,7 @@ type Querier interface {
 	ListKanbanItemsByProject(ctx context.Context, projectID int64) ([]ListKanbanItemsByProjectRow, error)
 	ListProjects(ctx context.Context) ([]Project, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	SoftDeleteDoneKanbanItems(ctx context.Context, projectID int64) error
 	UpdateKanbanItem(ctx context.Context, arg UpdateKanbanItemParams) (KanbanItem, error)
 	UpdateKanbanItemStatus(ctx context.Context, arg UpdateKanbanItemStatusParams) (KanbanItem, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)

@@ -27,6 +27,7 @@ type KanbanItem struct {
 	UpdatedAt  time.Time     `json:"updated_at"`
 	CreatedBy  sql.NullInt64 `json:"created_by"`
 	UpdatedBy  sql.NullInt64 `json:"updated_by"`
+	DeletedAt  sql.NullTime  `json:"deleted_at"`
 }
 
 type Project struct {

@@ -102,3 +102,14 @@ func (h *Kanban) Delete(c echo.Context) error {
 	}
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/projects/%d", projectID))
 }
+
+func (h *Kanban) DeleteAllDone(c echo.Context) error {
+	projectID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	if err := h.store.Queries().SoftDeleteDoneKanbanItems(context.Background(), projectID); err != nil {
+		return err
+	}
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/projects/%d", projectID))
+}

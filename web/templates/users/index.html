@@ -24,7 +24,7 @@
           <td class="text-right">
             <a href="/users/{{ .ID }}/edit" class="btn btn-ghost btn-xs">Edit</a>
             <form method="POST" action="/users/{{ .ID }}/delete" class="inline">
-              <button class="btn btn-ghost btn-xs text-error">Delete</button>
+              <button class="btn btn-ghost btn-xs text-error" onclick="return confirm('Delete this user?')">Delete</button>
             </form>
           </td>
         </tr>

@@ -39,7 +39,7 @@
         <td class="flex gap-1">
           <a href="/projects/{{ .ID }}/edit" class="btn btn-xs btn-ghost">Edit</a>
           <form method="POST" action="/projects/{{ .ID }}/delete" class="inline">
-            <button class="btn btn-xs btn-error">Delete</button>
+            <button class="btn btn-xs btn-error" onclick="return confirm('Delete this project?')">Delete</button>
           </form>
         </td>
       </tr>

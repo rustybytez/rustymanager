@@ -14,7 +14,7 @@ import (
 const createKanbanItem = `-- name: CreateKanbanItem :one
 INSERT INTO kanban_items (project_id, title, assignee_id, status)
 VALUES (?, ?, ?, ?)
-RETURNING id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by
+RETURNING id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by, deleted_at
 `
 
 type CreateKanbanItemParams struct {
@@ -42,6 +42,7 @@ func (q *Queries) CreateKanbanItem(ctx context.Context, arg CreateKanbanItemPara
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -56,7 +57,7 @@ func (q *Queries) DeleteKanbanItem(ctx context.Context, id int64) error {
 }
 
 const getKanbanItem = `-- name: GetKanbanItem :one
-SELECT id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by FROM kanban_items WHERE id = ? LIMIT 1
+SELECT id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by, deleted_at FROM kanban_items WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetKanbanItem(ctx context.Context, id int64) (KanbanItem, error) {
@@ -72,6 +73,7 @@ func (q *Queries) GetKanbanItem(ctx context.Context, id int64) (KanbanItem, erro
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -90,7 +92,7 @@ SELECT
     u.name AS assignee_name
 FROM kanban_items ki
 LEFT JOIN users u ON u.id = ki.assignee_id
-WHERE ki.project_id = ?
+WHERE ki.project_id = ? AND ki.deleted_at IS NULL
 ORDER BY ki.status, ki.created_at
 `
 
@@ -141,6 +143,17 @@ func (q *Queries) ListKanbanItemsByProject(ctx context.Context, projectID int64)
 	return items, nil
 }
 
+const softDeleteDoneKanbanItems = `-- name: SoftDeleteDoneKanbanItems :exec
+UPDATE kanban_items
+SET deleted_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+WHERE project_id = ? AND status = 'done' AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteDoneKanbanItems(ctx context.Context, projectID int64) error {
+	_, err := q.db.ExecContext(ctx, softDeleteDoneKanbanItems, projectID)
+	return err
+}
+
 const updateKanbanItem = `-- name: UpdateKanbanItem :one
 UPDATE kanban_items
 SET title       = ?,
@@ -148,7 +161,7 @@ SET title       = ?,
     status      = ?,
     updated_at  = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 WHERE id = ?
-RETURNING id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by
+RETURNING id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by, deleted_at
 `
 
 type UpdateKanbanItemParams struct {
@@ -176,6 +189,7 @@ func (q *Queries) UpdateKanbanItem(ctx context.Context, arg UpdateKanbanItemPara
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -185,7 +199,7 @@ UPDATE kanban_items
 SET status     = ?,
     updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 WHERE id = ?
-RETURNING id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by
+RETURNING id, project_id, title, assignee_id, status, created_at, updated_at, created_by, updated_by, deleted_at
 `
 
 type UpdateKanbanItemStatusParams struct {
@@ -206,6 +220,7 @@ func (q *Queries) UpdateKanbanItemStatus(ctx context.Context, arg UpdateKanbanIt
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }

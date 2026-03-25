@@ -109,6 +109,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.POST("/projects/:id/kanban", k.Create)
 	p.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
 	p.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
+	p.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
 
 	chat := handler.NewChatChannel(queries)
 	p.GET("/projects/:id/ws", chat.HandleWS)

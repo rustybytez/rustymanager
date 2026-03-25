@@ -12,7 +12,7 @@ SELECT
     u.name AS assignee_name
 FROM kanban_items ki
 LEFT JOIN users u ON u.id = ki.assignee_id
-WHERE ki.project_id = ?
+WHERE ki.project_id = ? AND ki.deleted_at IS NULL
 ORDER BY ki.status, ki.created_at;
 
 -- name: GetKanbanItem :one
@@ -41,3 +41,8 @@ RETURNING *;
 
 -- name: DeleteKanbanItem :exec
 DELETE FROM kanban_items WHERE id = ?;
+
+-- name: SoftDeleteDoneKanbanItems :exec
+UPDATE kanban_items
+SET deleted_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+WHERE project_id = ? AND status = 'done' AND deleted_at IS NULL;

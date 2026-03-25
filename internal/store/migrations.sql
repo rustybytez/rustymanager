@@ -34,6 +34,7 @@ ALTER TABLE projects ADD COLUMN created_by INTEGER REFERENCES users(id);
 ALTER TABLE projects ADD COLUMN updated_by INTEGER REFERENCES users(id);
 
 ALTER TABLE projects ADD COLUMN github_repo TEXT NOT NULL DEFAULT '';
+ALTER TABLE kanban_items ADD COLUMN deleted_at DATETIME;
 
 CREATE TABLE IF NOT EXISTS chat_messages (
     id         INTEGER  PRIMARY KEY AUTOINCREMENT,
