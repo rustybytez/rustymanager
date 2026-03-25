@@ -303,6 +303,7 @@ window.addEventListener('resize', initTabs);
         msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at, m.id));
         if (msg.messages.length > 0) {
           oldestMessageID = msg.messages[0].id;
+          if (msg.messages.length >= 100) updateLoadMoreBtn();
         }
         const box = document.getElementById('chat-messages');
         box.scrollTop = box.scrollHeight;
@@ -412,39 +413,60 @@ window.addEventListener('resize', initTabs);
   var loadingHistory = false;
   var noMoreHistory = false;
 
+  var loadMoreBtn = document.createElement('button');
+  loadMoreBtn.textContent = 'Load more';
+  loadMoreBtn.className = 'btn btn-ghost btn-xs self-center hidden';
+  document.getElementById('chat-messages').prepend(loadMoreBtn);
+
+  function updateLoadMoreBtn() {
+    if (!noMoreHistory && oldestMessageID !== null) {
+      loadMoreBtn.classList.remove('hidden');
+    } else {
+      loadMoreBtn.classList.add('hidden');
+    }
+  }
+
   function loadOlderMessages() {
     if (loadingHistory || noMoreHistory || oldestMessageID === null) return;
     loadingHistory = true;
+    loadMoreBtn.textContent = 'Loading…';
+    loadMoreBtn.disabled = true;
     const box = document.getElementById('chat-messages');
     const prevHeight = box.scrollHeight;
     fetch('/projects/{{ .Project.ID }}/chat/history?before=' + oldestMessageID)
       .then(function(r) { return r.json(); })
       .then(function(msgs) {
+        loadingHistory = false;
         if (!msgs || msgs.length === 0) {
           noMoreHistory = true;
-          loadingHistory = false;
+          updateLoadMoreBtn();
           return;
         }
         msgs.forEach(function(m) { prependMessage(m.user_name, m.content, m.created_at, m.id); });
         box.scrollTop = box.scrollHeight - prevHeight;
-        loadingHistory = false;
+        if (msgs.length < 50) noMoreHistory = true;
+        loadMoreBtn.textContent = 'Load more';
+        loadMoreBtn.disabled = false;
+        updateLoadMoreBtn();
       })
-      .catch(function() { loadingHistory = false; });
+      .catch(function() {
+        loadingHistory = false;
+        loadMoreBtn.textContent = 'Load more';
+        loadMoreBtn.disabled = false;
+      });
   }
 
   function prependMessage(userName, content, createdAt, id) {
     const box = document.getElementById('chat-messages');
     const el = document.createElement('div');
     el.className = 'text-sm';
-    const time = new Date(createdAt).toLocaleTimeString();
+    const time = new Date(createdAt).toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
     el.innerHTML = `<span class="font-semibold">${escapeHTML(userName)}</span> <span class="text-base-content/40 text-xs">${time}</span><br>${escapeHTML(content)}`;
-    box.insertBefore(el, box.firstChild);
+    box.insertBefore(el, loadMoreBtn.nextSibling);
     if (id < oldestMessageID) oldestMessageID = id;
   }
 
-  document.getElementById('chat-messages').addEventListener('scroll', function() {
-    if (this.scrollTop === 0) loadOlderMessages();
-  });
+  loadMoreBtn.addEventListener('click', loadOlderMessages);
 
   const currentUserID = {{ .CurrentUser.ID }};
 
@@ -456,7 +478,7 @@ window.addEventListener('resize', initTabs);
     const box = document.getElementById('chat-messages');
     const el = document.createElement('div');
     el.className = 'text-sm';
-    const time = new Date(createdAt).toLocaleTimeString();
+    const time = new Date(createdAt).toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
     el.innerHTML = `<span class="font-semibold">${escapeHTML(userName)}</span> <span class="text-base-content/40 text-xs">${time}</span><br>${escapeHTML(content)}`;
     box.appendChild(el);
     box.scrollTop = box.scrollHeight;
