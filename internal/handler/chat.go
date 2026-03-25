@@ -123,14 +123,14 @@ func (ch *ChatChannel) HandleWS(c echo.Context) error {
 	}
 	ch.register(client)
 
-	// Send message history.
+	// Send message history (newest 100, reversed to chronological order).
 	rows, err := ch.queries.ListChatMessagesByProject(ctx, projectID)
 	if err != nil {
 		log.Printf("chat: list history: %v", err)
 	} else {
 		msgs := make([]outgoingMsg, len(rows))
 		for i, r := range rows {
-			msgs[i] = outgoingMsg{
+			msgs[len(rows)-1-i] = outgoingMsg{
 				Type:      "message",
 				ID:        r.ID,
 				UserName:  r.UserName,
@@ -215,6 +215,38 @@ func (c *chatClient) readPump(ctx context.Context) {
 			go c.ch.push.Send(context.Background(), title, body, url)
 		}
 	}
+}
+
+// HandleHistory returns older messages before a given message ID as JSON.
+func (ch *ChatChannel) HandleHistory(c echo.Context) error {
+	projectID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	beforeID, err := strconv.ParseInt(c.QueryParam("before"), 10, 64)
+	if err != nil || beforeID <= 0 {
+		return echo.ErrBadRequest
+	}
+
+	rows, err := ch.queries.ListChatMessagesBefore(c.Request().Context(), db.ListChatMessagesBeforeParams{
+		ProjectID: projectID,
+		ID:        beforeID,
+	})
+	if err != nil {
+		return err
+	}
+
+	msgs := make([]outgoingMsg, len(rows))
+	for i, r := range rows {
+		msgs[len(rows)-1-i] = outgoingMsg{
+			Type:      "message",
+			ID:        r.ID,
+			UserName:  r.UserName,
+			Content:   r.Content,
+			CreatedAt: r.CreatedAt.Format(time.RFC3339),
+		}
+	}
+	return c.JSON(200, msgs)
 }
 
 func (c *chatClient) writePump(ctx context.Context) {

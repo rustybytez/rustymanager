@@ -1,146 +1,210 @@
 {{ define "content" }}
-<div>
+<div class="pb-20 md:pb-0">
+  <!-- Header -->
   <div class="flex justify-between items-center mb-2">
-    <div class="flex items-center gap-3">
-      <h1 class="text-2xl font-bold">{{ .Project.Name }}</h1>
-      <span class="badge badge-outline">{{ .Project.Status }}</span>
+    <div class="flex items-center gap-2 min-w-0">
+      <h1 class="text-xl md:text-2xl font-bold truncate">{{ .Project.Name }}</h1>
+      <span class="badge badge-outline shrink-0">{{ .Project.Status }}</span>
     </div>
-    <div class="flex gap-2">
-      <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add Item</a>
-      <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm">Edit</a>
-      <a href="/projects" class="btn btn-ghost btn-sm">Back</a>
+    <div class="flex gap-1 md:gap-2 shrink-0">
+      <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add</a>
+      <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm hidden md:inline-flex">Edit</a>
+      <a href="/projects" class="btn btn-ghost btn-sm hidden md:inline-flex">Back</a>
     </div>
   </div>
   {{ if .Project.Description }}
-  <p class="text-base-content/60 mb-6">{{ .Project.Description }}</p>
+  <p class="text-base-content/60 mb-4 text-sm md:mb-6">{{ .Project.Description }}</p>
   {{ end }}
 
-  <!-- Kanban board -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+  <!-- Kanban section -->
+  <div id="section-kanban">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 md:mt-6">
 
-    <!-- To Do -->
-    <div class="bg-base-200 rounded-xl p-4">
-      <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">To Do</h2>
-      <div class="flex flex-col gap-2">
-        {{ range .Items }}{{ if eq .Status "todo" }}
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body p-3">
-            <p class="font-medium text-sm">{{ .Title }}</p>
-            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
-            <div class="flex gap-1 mt-2 justify-end">
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="in_progress" />
-                <button class="btn btn-xs btn-ghost">→ In Progress</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-              </form>
+      <!-- To Do -->
+      <div class="bg-base-200 rounded-xl p-4">
+        <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">To Do</h2>
+        <div class="flex flex-col gap-2">
+          {{ range .Items }}{{ if eq .Status "todo" }}
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-3">
+              <p class="font-medium text-sm">{{ .Title }}</p>
+              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+              <div class="flex gap-1 mt-2 justify-end">
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="in_progress" />
+                  <button class="btn btn-xs btn-ghost">→ In Progress</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+                </form>
+              </div>
             </div>
           </div>
+          {{ end }}{{ end }}
         </div>
-        {{ end }}{{ end }}
       </div>
-    </div>
 
-    <!-- In Progress -->
-    <div class="bg-base-200 rounded-xl p-4">
-      <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">In Progress</h2>
-      <div class="flex flex-col gap-2">
-        {{ range .Items }}{{ if eq .Status "in_progress" }}
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body p-3">
-            <p class="font-medium text-sm">{{ .Title }}</p>
-            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
-            <div class="flex gap-1 mt-2 justify-end">
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="todo" />
-                <button class="btn btn-xs btn-ghost">← To Do</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="done" />
-                <button class="btn btn-xs btn-ghost">→ Done</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-              </form>
+      <!-- In Progress -->
+      <div class="bg-base-200 rounded-xl p-4">
+        <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">In Progress</h2>
+        <div class="flex flex-col gap-2">
+          {{ range .Items }}{{ if eq .Status "in_progress" }}
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-3">
+              <p class="font-medium text-sm">{{ .Title }}</p>
+              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+              <div class="flex gap-1 mt-2 justify-end">
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="todo" />
+                  <button class="btn btn-xs btn-ghost">← To Do</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="done" />
+                  <button class="btn btn-xs btn-ghost">→ Done</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+                </form>
+              </div>
             </div>
           </div>
+          {{ end }}{{ end }}
         </div>
-        {{ end }}{{ end }}
       </div>
-    </div>
 
-    <!-- Done -->
-    <div class="bg-base-200 rounded-xl p-4">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Done</h2>
-        <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/done/delete-all">
-          <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete all done items?')">Delete All</button>
-        </form>
-      </div>
-      <div class="flex flex-col gap-2">
-        {{ range .Items }}{{ if eq .Status "done" }}
-        <div class="card bg-base-100 shadow-sm border border-success/20">
-          <div class="card-body p-3">
-            <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
-            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
-            <div class="flex gap-1 mt-2 justify-end">
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="in_progress" />
-                <button class="btn btn-xs btn-ghost">← In Progress</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-              </form>
+      <!-- Done -->
+      <div class="bg-base-200 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Done</h2>
+          <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/done/delete-all">
+            <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete all done items?')">Delete All</button>
+          </form>
+        </div>
+        <div class="flex flex-col gap-2">
+          {{ range .Items }}{{ if eq .Status "done" }}
+          <div class="card bg-base-100 shadow-sm border border-success/20">
+            <div class="card-body p-3">
+              <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
+              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
+              <div class="flex gap-1 mt-2 justify-end">
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="in_progress" />
+                  <button class="btn btn-xs btn-ghost">← In Progress</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+                </form>
+              </div>
             </div>
           </div>
+          {{ end }}{{ end }}
         </div>
-        {{ end }}{{ end }}
       </div>
-    </div>
 
+    </div>
   </div>
 
-  <!-- Recent Commits -->
+  <!-- GitHub / Commits section -->
   {{ if .Project.GithubRepo }}
-  <div class="mt-8">
-    <div class="flex items-center gap-2 mb-3">
-      <h2 class="text-lg font-semibold">Recent Commits</h2>
-      <a href="https://github.com/{{ .Project.GithubRepo }}" target="_blank" class="text-xs text-base-content/40 hover:text-primary">{{ .Project.GithubRepo }}</a>
-      <button id="commits-reload" class="btn btn-ghost btn-xs ml-auto text-base-content/40">↺ Reload</button>
-    </div>
-    <div id="commits-list" class="flex flex-col gap-2">
-      <span class="text-sm text-base-content/40">Loading commits…</span>
+  <div id="section-github">
+    <div class="mt-4 md:mt-8">
+      <div class="flex items-center gap-2 mb-3">
+        <h2 class="text-lg font-semibold">Recent Commits</h2>
+        <a href="https://github.com/{{ .Project.GithubRepo }}" target="_blank" class="text-xs text-base-content/40 hover:text-primary">{{ .Project.GithubRepo }}</a>
+        <button id="commits-reload" class="btn btn-ghost btn-xs ml-auto text-base-content/40">↺ Reload</button>
+      </div>
+      <div id="commits-list" class="flex flex-col gap-2">
+        <span class="text-sm text-base-content/40">Loading commits…</span>
+      </div>
     </div>
   </div>
   {{ end }}
 
-  <!-- Chat -->
-  <div class="mt-8">
-    <div class="flex items-center gap-3 mb-3">
-      <h2 class="text-lg font-semibold">Project Chat</h2>
-      <span id="push-status" class="text-xs text-base-content/40"></span>
-    </div>
+  <!-- Chat section -->
+  <div id="section-chat">
+    <div class="mt-4 md:mt-8">
+      <div class="flex items-center gap-3 mb-3">
+        <h2 class="text-lg font-semibold">Project Chat</h2>
+        <span id="push-status" class="text-xs text-base-content/40"></span>
+      </div>
 
-    <div class="mb-3">
-      <select id="chat-user" class="select select-bordered select-sm">
-        <option value="">— select your name —</option>
-        {{ range .Users }}
-        <option value="{{ .ID }}">{{ .Name }}</option>
-        {{ end }}
-      </select>
-    </div>
+      <div class="mb-3">
+        <select id="chat-user" class="select select-bordered select-sm">
+          <option value="">— select your name —</option>
+          {{ range .Users }}
+          <option value="{{ .ID }}">{{ .Name }}</option>
+          {{ end }}
+        </select>
+      </div>
 
-    <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 overflow-y-auto flex flex-col gap-1 mb-3"></div>
+      <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 md:h-64 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
 
-    <div class="flex gap-2">
-      <input id="chat-input" type="text" placeholder="Type a message…" class="input input-bordered input-sm flex-1" />
-      <button id="chat-send" class="btn btn-primary btn-sm">Send</button>
+      <div class="flex gap-2">
+        <input id="chat-input" type="text" placeholder="Type a message…" class="input input-bordered input-sm flex-1" />
+        <button id="chat-send" class="btn btn-primary btn-sm">Send</button>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- Bottom nav (mobile only) -->
+<div class="btm-nav md:hidden z-20 border-t border-base-300 bg-base-100">
+  <button data-tab="kanban" onclick="switchTab('kanban')" class="active">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+    </svg>
+    <span class="btm-nav-label">Kanban</span>
+  </button>
+  {{ if .Project.GithubRepo }}
+  <button data-tab="github" onclick="switchTab('github')">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
+    </svg>
+    <span class="btm-nav-label">GitHub</span>
+  </button>
+  {{ end }}
+  <button data-tab="chat" onclick="switchTab('chat')">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+    <span class="btm-nav-label">Chat</span>
+  </button>
+</div>
+
 <script>
+// Tab switching (mobile only)
+var TABS = ['kanban', 'github', 'chat'];
+
+function isMobile() { return window.innerWidth < 768; }
+
+function switchTab(name) {
+  TABS.forEach(function(tab) {
+    var el = document.getElementById('section-' + tab);
+    if (el) el.style.display = (tab === name) ? '' : 'none';
+  });
+  document.querySelectorAll('.btm-nav button[data-tab]').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.tab === name);
+  });
+  if (name === 'chat') {
+    var box = document.getElementById('chat-messages');
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+}
+
+function initTabs() {
+  if (isMobile()) {
+    switchTab('kanban');
+  } else {
+    TABS.forEach(function(tab) {
+      var el = document.getElementById('section-' + tab);
+      if (el) el.style.display = '';
+    });
+  }
+}
+
+initTabs();
+window.addEventListener('resize', initTabs);
+
 {{ if .Project.GithubRepo }}
 (function () {
   function loadCommits() {
@@ -181,6 +245,8 @@
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
 
+  var pushActive = false;
+
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission().then(function (perm) {
       if (perm === 'granted') subscribeToPush();
@@ -205,7 +271,6 @@
     el.className = 'text-xs ' + (ok === true ? 'text-success' : ok === false ? 'text-error' : 'text-base-content/40');
   }
 
-  // Resubscribe if expiring within this many ms (24 hours).
   var EXPIRY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
   function isExpiringSoon(sub) {
@@ -220,6 +285,7 @@
       body: JSON.stringify(sub),
     }).then(function (res) {
       if (!res.ok) throw new Error('server returned ' + res.status);
+      pushActive = true;
       setPushStatus('🔔 notifications on', true);
       console.log('[push] active:', sub.endpoint);
     });
@@ -249,18 +315,15 @@
         var vapidKey = results[1].public_key;
 
         if (existing && !isExpiringSoon(existing)) {
-          // Valid subscription — just ensure the server has it.
           console.log('[push] reusing existing subscription');
           return saveSubscription(existing);
         }
 
-        // Expired, expiring soon, or no subscription — get a fresh one.
         var unsubPromise = existing ? existing.unsubscribe() : Promise.resolve();
         return unsubPromise
           .then(function () { return freshSubscribe(reg, vapidKey); })
           .then(function (sub) { return saveSubscription(sub); })
           .catch(function (err) {
-            // Key mismatch from a previous key: force unsubscribe and retry once.
             if (err.name === 'InvalidStateError' || (err.message && err.message.includes('application server key'))) {
               console.warn('[push] key mismatch, forcing resubscribe…');
               return reg.pushManager.getSubscription()
@@ -278,12 +341,51 @@
   }
 
   function showNotification(msg) {
-    if (document.hasFocus()) return;
+    if (document.visibilityState === 'visible') return;
+    if (pushActive) return;
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const body = msg.content.length > 100 ? msg.content.slice(0, 100) + '\u2026' : msg.content;
     const n = new Notification('New message in ' + projectName, { body: msg.user_name + ': ' + body });
     setTimeout(function () { n.close(); }, 4000);
   }
+
+  var oldestMessageID = null;
+  var loadingHistory = false;
+  var noMoreHistory = false;
+
+  function loadOlderMessages() {
+    if (loadingHistory || noMoreHistory || oldestMessageID === null) return;
+    loadingHistory = true;
+    const box = document.getElementById('chat-messages');
+    const prevHeight = box.scrollHeight;
+    fetch('/projects/{{ .Project.ID }}/chat/history?before=' + oldestMessageID)
+      .then(function(r) { return r.json(); })
+      .then(function(msgs) {
+        if (!msgs || msgs.length === 0) {
+          noMoreHistory = true;
+          loadingHistory = false;
+          return;
+        }
+        msgs.forEach(function(m) { prependMessage(m.user_name, m.content, m.created_at, m.id); });
+        box.scrollTop = box.scrollHeight - prevHeight;
+        loadingHistory = false;
+      })
+      .catch(function() { loadingHistory = false; });
+  }
+
+  function prependMessage(userName, content, createdAt, id) {
+    const box = document.getElementById('chat-messages');
+    const el = document.createElement('div');
+    el.className = 'text-sm';
+    const time = new Date(createdAt).toLocaleTimeString();
+    el.innerHTML = `<span class="font-semibold">${escapeHTML(userName)}</span> <span class="text-base-content/40 text-xs">${time}</span><br>${escapeHTML(content)}`;
+    box.insertBefore(el, box.firstChild);
+    if (id < oldestMessageID) oldestMessageID = id;
+  }
+
+  document.getElementById('chat-messages').addEventListener('scroll', function() {
+    if (this.scrollTop === 0) loadOlderMessages();
+  });
 
   const COOKIE_NAME = 'chat_user_id';
 
@@ -298,7 +400,6 @@
     document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
   }
 
-  // Restore previously selected user.
   const saved = getCookie(COOKIE_NAME);
   if (saved) {
     const sel = document.getElementById('chat-user');
@@ -313,7 +414,7 @@
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function appendMessage(userName, content, createdAt) {
+  function appendMessage(userName, content, createdAt, id) {
     const box = document.getElementById('chat-messages');
     const el = document.createElement('div');
     el.className = 'text-sm';
@@ -321,12 +422,18 @@
     el.innerHTML = `<span class="font-semibold">${escapeHTML(userName)}</span> <span class="text-base-content/40 text-xs">${time}</span><br>${escapeHTML(content)}`;
     box.appendChild(el);
     box.scrollTop = box.scrollHeight;
+    if (id && (oldestMessageID === null || id < oldestMessageID)) oldestMessageID = id;
   }
 
   ws.onmessage = function (e) {
     const msg = JSON.parse(e.data);
     if (msg.type === 'history') {
-      msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at));
+      msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at, m.id));
+      if (msg.messages.length > 0) {
+        oldestMessageID = msg.messages[0].id;
+      }
+      const box = document.getElementById('chat-messages');
+      box.scrollTop = box.scrollHeight;
     } else if (msg.type === 'message') {
       appendMessage(msg.user_name, msg.content, msg.created_at);
       showNotification(msg);

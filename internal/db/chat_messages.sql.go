@@ -36,13 +36,67 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 	return i, err
 }
 
+const listChatMessagesBefore = `-- name: ListChatMessagesBefore :many
+SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.created_at,
+       COALESCE(u.name, 'Anonymous') AS user_name
+FROM chat_messages cm
+LEFT JOIN users u ON cm.user_id = u.id
+WHERE cm.project_id = ? AND cm.id < ?
+ORDER BY cm.created_at DESC
+LIMIT 50
+`
+
+type ListChatMessagesBeforeParams struct {
+	ProjectID int64 `json:"project_id"`
+	ID        int64 `json:"id"`
+}
+
+type ListChatMessagesBeforeRow struct {
+	ID        int64         `json:"id"`
+	ProjectID int64         `json:"project_id"`
+	UserID    sql.NullInt64 `json:"user_id"`
+	Content   string        `json:"content"`
+	CreatedAt time.Time     `json:"created_at"`
+	UserName  string        `json:"user_name"`
+}
+
+func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessagesBeforeParams) ([]ListChatMessagesBeforeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listChatMessagesBefore, arg.ProjectID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListChatMessagesBeforeRow
+	for rows.Next() {
+		var i ListChatMessagesBeforeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.UserID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.UserName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChatMessagesByProject = `-- name: ListChatMessagesByProject :many
 SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.created_at,
        COALESCE(u.name, 'Anonymous') AS user_name
 FROM chat_messages cm
 LEFT JOIN users u ON cm.user_id = u.id
 WHERE cm.project_id = ?
-ORDER BY cm.created_at ASC
+ORDER BY cm.created_at DESC
 LIMIT 100
 `
 

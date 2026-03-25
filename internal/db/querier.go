@@ -20,6 +20,7 @@ type Querier interface {
 	GetKanbanItem(ctx context.Context, id int64) (KanbanItem, error)
 	GetProject(ctx context.Context, id int64) (Project, error)
 	GetUser(ctx context.Context, id int64) (User, error)
+	ListChatMessagesBefore(ctx context.Context, arg ListChatMessagesBeforeParams) ([]ListChatMessagesBeforeRow, error)
 	ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error)
 	ListKanbanItemsByProject(ctx context.Context, projectID int64) ([]ListKanbanItemsByProjectRow, error)
 	ListProjects(ctx context.Context) ([]Project, error)
