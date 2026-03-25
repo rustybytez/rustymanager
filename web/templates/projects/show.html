@@ -174,8 +174,21 @@
 
 (function () {
   const projectID = {{ .Project.ID }};
+  const projectName = {{ .Project.Name | printf "%q" }};
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  function showNotification(msg) {
+    if (document.hasFocus()) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const body = msg.content.length > 100 ? msg.content.slice(0, 100) + '\u2026' : msg.content;
+    const n = new Notification('New message in ' + projectName, { body: msg.user_name + ': ' + body });
+    setTimeout(function () { n.close(); }, 4000);
+  }
 
   const COOKIE_NAME = 'chat_user_id';
 
@@ -221,6 +234,7 @@
       msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at));
     } else if (msg.type === 'message') {
       appendMessage(msg.user_name, msg.content, msg.created_at);
+      showNotification(msg);
     }
   };
 
