@@ -165,6 +165,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 	rp.GET("/projects/:id/edit", h.Edit)
 	rp.POST("/projects/:id", h.Update)
 	rp.POST("/projects/:id/delete", h.Delete)
+	rp.GET("/projects/:id/test-github", h.TestGitHub)
 
 	k := handler.NewKanban(s)
 	rp.GET("/projects/:id/kanban/new", k.New)

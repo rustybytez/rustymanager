@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"rustymanager/internal/db"
+	"rustymanager/internal/github"
 	authmw "rustymanager/internal/middleware"
 	"rustymanager/internal/store"
 )
@@ -141,7 +142,19 @@ func (h *Projects) Update(c echo.Context) error {
 	if _, err := h.store.Queries().UpdateProject(context.Background(), params); err != nil {
 		return err
 	}
-	return c.Redirect(http.StatusSeeOther, "/projects")
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/projects/%d", id))
+}
+
+func (h *Projects) TestGitHub(c echo.Context) error {
+	repo := c.QueryParam("repo")
+	if repo == "" {
+		return c.JSON(http.StatusOK, map[string]any{"ok": false, "message": "No repo configured"})
+	}
+	_, err := github.FetchCommits(repo, 1, 1)
+	if err != nil {
+		return c.JSON(http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]any{"ok": true, "message": "Connected (" + repo + ")"})
 }
 
 func (h *Projects) Delete(c echo.Context) error {
