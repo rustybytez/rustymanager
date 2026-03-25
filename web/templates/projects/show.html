@@ -123,8 +123,9 @@
   <!-- Chat section -->
   <div id="section-chat">
     <div class="mt-4 md:mt-8">
-      <div class="flex items-center gap-3 mb-3">
+      <div class="flex items-center gap-2 mb-3">
         <h2 class="text-lg font-semibold">Project Chat</h2>
+        <button id="chat-reconnect" class="btn btn-ghost btn-xs ml-auto text-base-content/40 hidden">↺ Reconnect</button>
       </div>
 
       <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 md:h-64 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
@@ -233,7 +234,42 @@ window.addEventListener('resize', initTabs);
   const projectID = {{ .Project.ID }};
   const projectName = {{ .Project.Name | printf "%q" }};
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
+  var ws;
+
+  function connectWS() {
+    ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
+    document.getElementById('chat-reconnect').classList.add('hidden');
+
+    ws.onopen = function () {
+      document.getElementById('chat-reconnect').classList.add('hidden');
+    };
+
+    ws.onclose = function () {
+      document.getElementById('chat-reconnect').classList.remove('hidden');
+    };
+
+    ws.onerror = function () {
+      document.getElementById('chat-reconnect').classList.remove('hidden');
+    };
+
+    ws.onmessage = function (e) {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'history') {
+        msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at, m.id));
+        if (msg.messages.length > 0) {
+          oldestMessageID = msg.messages[0].id;
+        }
+        const box = document.getElementById('chat-messages');
+        box.scrollTop = box.scrollHeight;
+      } else if (msg.type === 'message') {
+        appendMessage(msg.user_name, msg.content, msg.created_at);
+        showNotification(msg);
+      }
+    };
+  }
+
+  document.getElementById('chat-reconnect').addEventListener('click', connectWS);
+  connectWS();
 
   var pushActive = false;
 
@@ -382,21 +418,6 @@ window.addEventListener('resize', initTabs);
     box.scrollTop = box.scrollHeight;
     if (id && (oldestMessageID === null || id < oldestMessageID)) oldestMessageID = id;
   }
-
-  ws.onmessage = function (e) {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'history') {
-      msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at, m.id));
-      if (msg.messages.length > 0) {
-        oldestMessageID = msg.messages[0].id;
-      }
-      const box = document.getElementById('chat-messages');
-      box.scrollTop = box.scrollHeight;
-    } else if (msg.type === 'message') {
-      appendMessage(msg.user_name, msg.content, msg.created_at);
-      showNotification(msg);
-    }
-  };
 
   function send() {
     const input = document.getElementById('chat-input');
