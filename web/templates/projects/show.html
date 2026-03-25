@@ -7,7 +7,6 @@
       <span class="badge badge-outline shrink-0">{{ .Project.Status }}</span>
     </div>
     <div class="flex gap-1 md:gap-2 shrink-0">
-      <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add</a>
       <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm hidden md:inline-flex">Edit</a>
       <a href="/projects" class="btn btn-ghost btn-sm hidden md:inline-flex">Back</a>
     </div>
@@ -18,7 +17,10 @@
 
   <!-- Kanban section -->
   <div id="section-kanban">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 md:mt-6">
+    <div class="flex justify-end mt-4 md:mt-6 mb-2">
+      <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add</a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
       <!-- To Do -->
       <div class="bg-base-200 rounded-xl p-4">
@@ -125,7 +127,7 @@
     <div class="mt-4 md:mt-8">
       <div class="flex items-center gap-2 mb-3">
         <h2 class="text-lg font-semibold">Project Chat</h2>
-        <button id="chat-reconnect" class="btn btn-ghost btn-xs ml-auto text-base-content/40 hidden">↺ Reconnect</button>
+        <span id="chat-reconnect" class="ml-auto text-xs text-base-content/40 hidden">↺ Reconnecting…</span>
       </div>
 
       <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 md:h-64 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
@@ -235,8 +237,10 @@ window.addEventListener('resize', initTabs);
   const projectName = {{ .Project.Name | printf "%q" }};
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   var ws;
+  var reconnectTimer;
 
   function connectWS() {
+    clearTimeout(reconnectTimer);
     ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
     document.getElementById('chat-reconnect').classList.add('hidden');
 
@@ -246,6 +250,7 @@ window.addEventListener('resize', initTabs);
 
     ws.onclose = function () {
       document.getElementById('chat-reconnect').classList.remove('hidden');
+      reconnectTimer = setTimeout(connectWS, 3000);
     };
 
     ws.onerror = function () {
@@ -268,7 +273,6 @@ window.addEventListener('resize', initTabs);
     };
   }
 
-  document.getElementById('chat-reconnect').addEventListener('click', connectWS);
   connectWS();
 
   var pushActive = false;
