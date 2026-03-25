@@ -86,6 +86,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 		defer f.Close()
 		c.Response().Header().Set("Content-Type", "application/javascript")
 		c.Response().Header().Set("Service-Worker-Allowed", "/")
+		c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		_, err = io.Copy(c.Response().Writer, f)
 		return err
 	})
