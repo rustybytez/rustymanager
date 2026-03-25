@@ -9,20 +9,13 @@
 }
 </style>
 <div class="pb-20 md:pb-0">
-  <!-- Header -->
-  <div class="flex justify-between items-center mb-2">
-    <div class="flex items-center gap-2 min-w-0">
-      <h1 class="text-xl md:text-2xl font-bold truncate">{{ .Project.Name }}</h1>
-      <span class="badge badge-outline shrink-0">{{ .Project.Status }}</span>
-    </div>
-    <div class="flex gap-1 md:gap-2 shrink-0">
-      <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm hidden md:inline-flex">Edit</a>
-      <a href="/projects" class="btn btn-ghost btn-sm hidden md:inline-flex">Back</a>
+  <!-- Header (desktop only) -->
+  <div class="hidden md:flex justify-end items-center mb-2">
+    <div class="flex gap-2 shrink-0">
+      <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm">Edit</a>
+      <a href="/projects" class="btn btn-ghost btn-sm">Back</a>
     </div>
   </div>
-  {{ if .Project.Description }}
-  <p class="text-base-content/60 mb-4 text-sm md:mb-6">{{ .Project.Description }}</p>
-  {{ end }}
 
   <!-- Kanban section -->
   <div id="section-kanban">

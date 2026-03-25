@@ -109,7 +109,7 @@ func (h *Users) Select(c echo.Context) error {
 	cookie.SameSite = http.SameSiteStrictMode
 	cookie.MaxAge = 365 * 24 * 60 * 60
 	c.SetCookie(cookie)
-	return c.Redirect(http.StatusSeeOther, "/projects")
+	return c.Redirect(http.StatusSeeOther, "/select-project")
 }
 
 func (h *Users) SwitchUser(c echo.Context) error {

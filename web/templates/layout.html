@@ -17,7 +17,11 @@
 <body>
   <div class="navbar bg-base-200 shadow-sm mb-6">
     <div class="flex-1">
+      {{ if .CurrentProject }}
+      <a href="/projects/{{ .CurrentProject.ID }}" class="btn btn-ghost text-xl">{{ .CurrentProject.Name }}</a>
+      {{ else }}
       <a href="/projects" class="btn btn-ghost text-xl">rustymanager</a>
+      {{ end }}
     </div>
     <div class="flex-none gap-2 flex items-center">
       {{ if .CurrentUser }}

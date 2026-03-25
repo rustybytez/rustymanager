@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -45,6 +46,9 @@ func (r *renderer) Render(w io.Writer, name string, data any, c echo.Context) er
 	if m, ok := data.(map[string]any); ok {
 		if user := c.Get(authmw.CurrentUserKey); user != nil {
 			m["CurrentUser"] = user
+		}
+		if project := c.Get(authmw.CurrentProjectKey); project != nil {
+			m["CurrentProject"] = project
 		}
 	}
 	return t.ExecuteTemplate(w, "layout", data)
@@ -118,6 +122,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 	// Auth + user-selection required
 	r := p.Group("")
 	r.Use(authmw.RequireUser(s))
+	r.Use(authmw.LoadProject(s))
 
 	vapidPub, vapidPriv := loadVAPIDKeys()
 	vapidSubscriber := os.Getenv("VAPID_SUBSCRIBER")
@@ -133,16 +138,13 @@ func newApp(dsn string) (*echo.Echo, error) {
 	r.GET("/settings", handler.Settings)
 
 	h := handler.NewProjects(s)
-	r.GET("/", func(c echo.Context) error {
-		return c.Redirect(http.StatusFound, "/projects")
-	})
+	// Routes that do NOT require a project selection
+	r.GET("/select-project", h.SelectProjectPage)
+	r.POST("/select-project", h.SelectProject)
+	r.POST("/switch-project", h.SwitchProject)
 	r.GET("/projects", h.Index)
 	r.GET("/projects/new", h.New)
 	r.POST("/projects", h.Create)
-	r.GET("/projects/:id", h.Show)
-	r.GET("/projects/:id/edit", h.Edit)
-	r.POST("/projects/:id", h.Update)
-	r.POST("/projects/:id/delete", h.Delete)
 
 	r.GET("/users", u.Index)
 	r.GET("/users/new", u.New)
@@ -151,12 +153,25 @@ func newApp(dsn string) (*echo.Echo, error) {
 	r.POST("/users/:id", u.Update)
 	r.POST("/users/:id/delete", u.Delete)
 
+	// Routes that require a project to be selected
+	rp := r.Group("")
+	rp.Use(authmw.RequireProject())
+
+	rp.GET("/", func(c echo.Context) error {
+		p := c.Get(authmw.CurrentProjectKey).(db.Project)
+		return c.Redirect(http.StatusFound, fmt.Sprintf("/projects/%d", p.ID))
+	})
+	rp.GET("/projects/:id", h.Show)
+	rp.GET("/projects/:id/edit", h.Edit)
+	rp.POST("/projects/:id", h.Update)
+	rp.POST("/projects/:id/delete", h.Delete)
+
 	k := handler.NewKanban(s)
-	r.GET("/projects/:id/kanban/new", k.New)
-	r.POST("/projects/:id/kanban", k.Create)
-	r.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
-	r.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
-	r.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
+	rp.GET("/projects/:id/kanban/new", k.New)
+	rp.POST("/projects/:id/kanban", k.Create)
+	rp.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
+	rp.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
+	rp.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
 
 	chat := handler.NewChatChannel(queries, pushSender)
 	r.GET("/projects/:id/ws", chat.HandleWS)
