@@ -1,4 +1,4 @@
-.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools vapid
+.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools vapid vapid-update-env
 
 TAILWIND_VERSION ?= v3.4.17
 PORT             ?= 8080
@@ -58,6 +58,9 @@ generate:
 
 vapid:
 	go run ./cmd/vapid
+
+vapid-update-env:
+	go run ./cmd/vapid -update-env
 
 docker-build:
 	docker build -t rustymanager:latest .
