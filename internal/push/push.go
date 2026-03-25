@@ -3,6 +3,7 @@ package push
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -63,9 +64,12 @@ func (s *Sender) Send(ctx context.Context, title, body, url string) {
 			log.Printf("push: send to %s: %v", sub.Endpoint, err)
 			continue
 		}
-		resp.Body.Close()
 		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-			log.Printf("push: %s responded %d", sub.Endpoint, resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			log.Printf("push: %s responded %d: %s", sub.Endpoint, resp.StatusCode, string(body))
+		} else {
+			resp.Body.Close()
 		}
 		if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
 			if delErr := s.queries.DeletePushSubscription(ctx, sub.Endpoint); delErr != nil {
