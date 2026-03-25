@@ -16,9 +16,7 @@ COPY web/templates/ ./web/templates/
 RUN tailwindcss -i assets/css/app.css -o web/static/css/app.css --minify
 
 # Stage 2: Go build
-FROM golang:1.25-alpine AS go-builder
-RUN addgroup -S appuser && adduser -S appuser -G appuser && \
-    mkdir -p /data && chown appuser:appuser /data
+FROM golang:1.26-alpine AS go-builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -28,10 +26,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/rustymanager ./cm
 
 # Stage 3: Runtime
 FROM gcr.io/distroless/static-debian12
-COPY --from=go-builder /etc/passwd /etc/passwd
-COPY --from=go-builder /etc/group /etc/group
-COPY --from=go-builder /data /data
 COPY --from=go-builder /bin/rustymanager /rustymanager
-USER appuser
 EXPOSE 8080
 ENTRYPOINT ["/rustymanager"]

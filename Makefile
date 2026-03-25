@@ -1,4 +1,8 @@
-.PHONY: build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools vapid vapid-update-env
+.PHONY: help build run kill test test-pkg lint fmt tidy css css-watch tailwind-install generate docker-build docker-run dev install-dev-tools vapid vapid-update-env
+.DEFAULT_GOAL := help
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 TAILWIND_VERSION ?= v3.4.17
 PORT             ?= 8080
@@ -13,12 +17,12 @@ $(TAILWIND_BIN):
 		-o $(TAILWIND_BIN)
 	chmod +x $(TAILWIND_BIN)
 
-install-dev-tools: $(TAILWIND_BIN)
+install-dev-tools: $(TAILWIND_BIN) ## Install dev tools (tailwind, go deps)
 	go mod download
 
-tailwind-install: $(TAILWIND_BIN)
+tailwind-install: $(TAILWIND_BIN) ## Download Tailwind standalone binary
 
-kill:
+kill: ## Kill process on PORT (default 8080)
 	@PID=$$(lsof -ti:$(PORT)); \
 	if [ -n "$$PID" ]; then \
 		kill -9 $$PID && echo "killed $$PID on :$(PORT)"; \
@@ -26,47 +30,47 @@ kill:
 		echo "nothing running on :$(PORT)"; \
 	fi
 
-build:
+build: ## Compile all packages
 	go build ./...
 
-run:
+run: ## Run the server
 	go run ./cmd/server
 
-test:
+test: ## Run all tests
 	go test ./...
 
-test-pkg:
+test-pkg: ## Run tests for a single package (PKG=path/to/pkg)
 	go test ./$(PKG)/...
 
-lint:
+lint: ## Run golangci-lint
 	go tool golangci-lint run
 
-fmt:
+fmt: ## Format Go code
 	go fmt ./...
 
-tidy:
+tidy: ## Tidy go.mod
 	go mod tidy
 
-css: $(TAILWIND_BIN)
+css: $(TAILWIND_BIN) ## Build Tailwind CSS (minified)
 	$(TAILWIND_BIN) -i assets/css/app.css -o web/static/css/app.css --minify
 
-css-watch: $(TAILWIND_BIN)
+css-watch: $(TAILWIND_BIN) ## Watch and rebuild CSS on changes
 	$(TAILWIND_BIN) -i assets/css/app.css -o web/static/css/app.css --watch
 
-generate:
+generate: ## Regenerate sqlc code
 	go tool sqlc generate
 
-vapid:
+vapid: ## Generate VAPID keys
 	go run ./cmd/vapid
 
-vapid-update-env:
+vapid-update-env: ## Generate VAPID keys and update .env
 	go run ./cmd/vapid -update-env
 
-docker-build:
+docker-build: ## Build Docker image
 	docker build -t rustymanager:latest .
 
-docker-run:
+docker-run: ## Run Docker container on port 8080
 	docker run --rm -p 8080:8080 rustymanager:latest
 
-dev: css
+dev: css ## Build CSS then run with hot reload
 	go tool air
