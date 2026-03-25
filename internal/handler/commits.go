@@ -32,7 +32,11 @@ func (h *Commits) List(c echo.Context) error {
 	if repo == "" {
 		return c.JSON(http.StatusOK, []any{})
 	}
-	commits, err := github.FetchCommits(repo, 5)
+	page := 1
+	if p, err := strconv.Atoi(c.QueryParam("page")); err == nil && p > 0 {
+		page = p
+	}
+	commits, err := github.FetchCommits(repo, 10, page)
 	if err != nil {
 		return c.JSON(http.StatusBadGateway, map[string]string{"error": err.Error()})
 	}

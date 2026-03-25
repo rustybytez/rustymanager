@@ -20,8 +20,8 @@ type Commit struct {
 	} `json:"commit"`
 }
 
-func FetchCommits(repo string, n int) ([]Commit, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/commits?per_page=%d", repo, n)
+func FetchCommits(repo string, n int, page int) ([]Commit, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/commits?per_page=%d&page=%d", repo, n, page)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

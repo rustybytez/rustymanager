@@ -1,4 +1,13 @@
 {{ define "content" }}
+<style>
+@media (max-width: 767px) {
+  #chat-messages {
+    /* fill from below the header/title to just above the input + bottom nav */
+    height: calc(100dvh - 240px) !important;
+    max-height: none !important;
+  }
+}
+</style>
 <div class="pb-20 md:pb-0">
   <!-- Header -->
   <div class="flex justify-between items-center mb-2">
@@ -17,14 +26,14 @@
 
   <!-- Kanban section -->
   <div id="section-kanban">
-    <div class="flex justify-end mt-4 md:mt-6 mb-2">
-      <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add</a>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 md:mt-6">
 
       <!-- To Do -->
       <div class="bg-base-200 rounded-xl p-4">
-        <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">To Do</h2>
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">To Do</h2>
+          <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-xs btn-ghost">+ Add</a>
+        </div>
         <div class="flex flex-col gap-2">
           {{ range .Items }}{{ if eq .Status "todo" }}
           <div class="card bg-base-100 shadow-sm">
@@ -118,6 +127,9 @@
       <div id="commits-list" class="flex flex-col gap-2">
         <span class="text-sm text-base-content/40">Loading commits…</span>
       </div>
+      <div class="mt-3 flex justify-center">
+        <button id="commits-load-more" class="btn btn-ghost btn-sm hidden">Load more</button>
+      </div>
     </div>
   </div>
   {{ end }}
@@ -130,11 +142,11 @@
         <span id="chat-reconnect" class="ml-auto text-xs text-base-content/40 hidden">↺ Reconnecting…</span>
       </div>
 
-      <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 md:h-64 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
+      <div id="chat-messages" class="bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
 
-      <div class="flex gap-2">
-        <input id="chat-input" type="text" placeholder="Type a message…" class="input input-bordered input-sm flex-1 text-base" />
-        <button id="chat-send" class="btn btn-primary btn-sm">Send</button>
+      <div class="join w-full">
+        <input id="chat-input" type="text" placeholder="Type a message…" class="input input-bordered input-sm join-item flex-1 text-base" />
+        <button id="chat-send" class="btn btn-primary btn-sm join-item">Send</button>
       </div>
     </div>
   </div>
@@ -200,35 +212,70 @@ window.addEventListener('resize', initTabs);
 
 {{ if .Project.GithubRepo }}
 (function () {
-  function loadCommits() {
+  var currentPage = 1;
+  var pageSize = 10;
+  var loading = false;
+
+  function renderCommit(c) {
+    const msg = c.commit.message.split('\n')[0];
+    const date = new Date(c.commit.author.date).toLocaleDateString();
+    const sha = c.sha.slice(0, 7);
+    return '<div class="flex items-start gap-3 bg-base-200 rounded-lg px-4 py-2">'
+      + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary mt-0.5 shrink-0">' + sha + '</a>'
+      + '<div class="flex-1 min-w-0">'
+      + '<p class="text-sm truncate">' + msg + '</p>'
+      + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
+      + '</div></div>';
+  }
+
+  function loadCommits(page, append) {
+    if (loading) return;
+    loading = true;
     const list = document.getElementById('commits-list');
-    list.innerHTML = '<span class="text-sm text-base-content/40">Loading commits\u2026</span>';
-    fetch('/projects/{{ .Project.ID }}/commits')
+    const loadMore = document.getElementById('commits-load-more');
+    if (!append) {
+      list.innerHTML = '<span class="text-sm text-base-content/40">Loading commits\u2026</span>';
+      loadMore.classList.add('hidden');
+    } else {
+      loadMore.textContent = 'Loading…';
+      loadMore.disabled = true;
+    }
+    fetch('/projects/{{ .Project.ID }}/commits?page=' + page)
       .then(function (r) { return r.json(); })
       .then(function (commits) {
+        loading = false;
         if (!commits || commits.length === 0) {
-          list.innerHTML = '<span class="text-sm text-base-content/40">No commits found.</span>';
+          if (!append) list.innerHTML = '<span class="text-sm text-base-content/40">No commits found.</span>';
+          loadMore.classList.add('hidden');
           return;
         }
-        list.innerHTML = commits.map(function (c) {
-          const msg = c.commit.message.split('\n')[0];
-          const date = new Date(c.commit.author.date).toLocaleDateString();
-          const sha = c.sha.slice(0, 7);
-          return '<div class="flex items-start gap-3 bg-base-200 rounded-lg px-4 py-2">'
-            + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary mt-0.5 shrink-0">' + sha + '</a>'
-            + '<div class="flex-1 min-w-0">'
-            + '<p class="text-sm truncate">' + msg + '</p>'
-            + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
-            + '</div></div>';
-        }).join('');
+        if (!append) list.innerHTML = '';
+        list.insertAdjacentHTML('beforeend', commits.map(renderCommit).join(''));
+        if (commits.length < pageSize) {
+          loadMore.classList.add('hidden');
+        } else {
+          loadMore.textContent = 'Load more';
+          loadMore.disabled = false;
+          loadMore.classList.remove('hidden');
+          currentPage = page;
+        }
       })
       .catch(function () {
-        list.innerHTML = '<span class="text-sm text-error">Failed to load commits.</span>';
+        loading = false;
+        if (!append) list.innerHTML = '<span class="text-sm text-error">Failed to load commits.</span>';
+        loadMore.textContent = 'Load more';
+        loadMore.disabled = false;
       });
   }
 
-  document.getElementById('commits-reload').addEventListener('click', loadCommits);
-  loadCommits();
+  document.getElementById('commits-reload').addEventListener('click', function () {
+    currentPage = 1;
+    loadCommits(1, false);
+  });
+  document.getElementById('commits-load-more').addEventListener('click', function () {
+    loadCommits(currentPage + 1, true);
+  });
+  loadCommits(1, false);
 })();
 {{ end }}
 
