@@ -102,6 +102,7 @@
     <div class="flex items-center gap-2 mb-3">
       <h2 class="text-lg font-semibold">Recent Commits</h2>
       <a href="https://github.com/{{ .Project.GithubRepo }}" target="_blank" class="text-xs text-base-content/40 hover:text-primary">{{ .Project.GithubRepo }}</a>
+      <button id="commits-reload" class="btn btn-ghost btn-xs ml-auto text-base-content/40">↺ Reload</button>
     </div>
     <div id="commits-list" class="flex flex-col gap-2">
       <span class="text-sm text-base-content/40">Loading commits…</span>
@@ -134,29 +135,35 @@
 <script>
 {{ if .Project.GithubRepo }}
 (function () {
-  fetch('/projects/{{ .Project.ID }}/commits')
-    .then(function (r) { return r.json(); })
-    .then(function (commits) {
-      const list = document.getElementById('commits-list');
-      if (!commits || commits.length === 0) {
-        list.innerHTML = '<span class="text-sm text-base-content/40">No commits found.</span>';
-        return;
-      }
-      list.innerHTML = commits.map(function (c) {
-        const msg = c.commit.message.split('\n')[0];
-        const date = new Date(c.commit.author.date).toLocaleDateString();
-        const sha = c.sha.slice(0, 7);
-        return '<div class="flex items-start gap-3 bg-base-200 rounded-lg px-4 py-2">'
-          + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary mt-0.5 shrink-0">' + sha + '</a>'
-          + '<div class="flex-1 min-w-0">'
-          + '<p class="text-sm truncate">' + msg + '</p>'
-          + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
-          + '</div></div>';
-      }).join('');
-    })
-    .catch(function () {
-      document.getElementById('commits-list').innerHTML = '<span class="text-sm text-error">Failed to load commits.</span>';
-    });
+  function loadCommits() {
+    const list = document.getElementById('commits-list');
+    list.innerHTML = '<span class="text-sm text-base-content/40">Loading commits\u2026</span>';
+    fetch('/projects/{{ .Project.ID }}/commits')
+      .then(function (r) { return r.json(); })
+      .then(function (commits) {
+        if (!commits || commits.length === 0) {
+          list.innerHTML = '<span class="text-sm text-base-content/40">No commits found.</span>';
+          return;
+        }
+        list.innerHTML = commits.map(function (c) {
+          const msg = c.commit.message.split('\n')[0];
+          const date = new Date(c.commit.author.date).toLocaleDateString();
+          const sha = c.sha.slice(0, 7);
+          return '<div class="flex items-start gap-3 bg-base-200 rounded-lg px-4 py-2">'
+            + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary mt-0.5 shrink-0">' + sha + '</a>'
+            + '<div class="flex-1 min-w-0">'
+            + '<p class="text-sm truncate">' + msg + '</p>'
+            + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
+            + '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        list.innerHTML = '<span class="text-sm text-error">Failed to load commits.</span>';
+      });
+  }
+
+  document.getElementById('commits-reload').addEventListener('click', loadCommits);
+  loadCommits();
 })();
 {{ end }}
 
