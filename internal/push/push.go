@@ -16,10 +16,11 @@ type Sender struct {
 	queries         db.Querier
 	vapidPublicKey  string
 	vapidPrivateKey string
+	subscriber      string
 }
 
-func NewSender(q db.Querier, pubKey, privKey string) *Sender {
-	return &Sender{queries: q, vapidPublicKey: pubKey, vapidPrivateKey: privKey}
+func NewSender(q db.Querier, pubKey, privKey, subscriber string) *Sender {
+	return &Sender{queries: q, vapidPublicKey: pubKey, vapidPrivateKey: privKey, subscriber: subscriber}
 }
 
 type payload struct {
@@ -53,6 +54,7 @@ func (s *Sender) Send(ctx context.Context, title, body, url string) {
 				Auth:   sub.Auth,
 			},
 		}, &webpush.Options{
+			Subscriber:      s.subscriber,
 			VAPIDPublicKey:  s.vapidPublicKey,
 			VAPIDPrivateKey: s.vapidPrivateKey,
 			TTL:             86400,
@@ -62,6 +64,9 @@ func (s *Sender) Send(ctx context.Context, title, body, url string) {
 			continue
 		}
 		resp.Body.Close()
+		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+			log.Printf("push: %s responded %d", sub.Endpoint, resp.StatusCode)
+		}
 		if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
 			if delErr := s.queries.DeletePushSubscription(ctx, sub.Endpoint); delErr != nil {
 				log.Printf("push: delete stale subscription: %v", delErr)

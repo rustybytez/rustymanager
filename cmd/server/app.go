@@ -120,7 +120,11 @@ func newApp(dsn string) (*echo.Echo, error) {
 	r.Use(authmw.RequireUser(s))
 
 	vapidPub, vapidPriv := loadVAPIDKeys()
-	pushSender := push.NewSender(queries, vapidPub, vapidPriv)
+	vapidSubscriber := os.Getenv("VAPID_SUBSCRIBER")
+	if vapidSubscriber == "" {
+		vapidSubscriber = "mailto:admin@example.com"
+	}
+	pushSender := push.NewSender(queries, vapidPub, vapidPriv, vapidSubscriber)
 	pushHandler := push.NewHandler(queries, vapidPub)
 	r.GET("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
 	r.POST("/push/subscribe", pushHandler.Subscribe)
