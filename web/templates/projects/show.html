@@ -95,5 +95,136 @@
     </div>
 
   </div>
+
+  <!-- Recent Commits -->
+  {{ if .Project.GithubRepo }}
+  <div class="mt-8">
+    <div class="flex items-center gap-2 mb-3">
+      <h2 class="text-lg font-semibold">Recent Commits</h2>
+      <a href="https://github.com/{{ .Project.GithubRepo }}" target="_blank" class="text-xs text-base-content/40 hover:text-primary">{{ .Project.GithubRepo }}</a>
+    </div>
+    <div id="commits-list" class="flex flex-col gap-2">
+      <span class="text-sm text-base-content/40">Loading commits…</span>
+    </div>
+  </div>
+  {{ end }}
+
+  <!-- Chat -->
+  <div class="mt-8">
+    <h2 class="text-lg font-semibold mb-3">Project Chat</h2>
+
+    <div class="mb-3">
+      <select id="chat-user" class="select select-bordered select-sm">
+        <option value="">— select your name —</option>
+        {{ range .Users }}
+        <option value="{{ .ID }}">{{ .Name }}</option>
+        {{ end }}
+      </select>
+    </div>
+
+    <div id="chat-messages" class="bg-base-200 rounded-xl p-4 h-64 overflow-y-auto flex flex-col gap-1 mb-3"></div>
+
+    <div class="flex gap-2">
+      <input id="chat-input" type="text" placeholder="Type a message…" class="input input-bordered input-sm flex-1" />
+      <button id="chat-send" class="btn btn-primary btn-sm">Send</button>
+    </div>
+  </div>
 </div>
+
+<script>
+{{ if .Project.GithubRepo }}
+(function () {
+  fetch('/projects/{{ .Project.ID }}/commits')
+    .then(function (r) { return r.json(); })
+    .then(function (commits) {
+      const list = document.getElementById('commits-list');
+      if (!commits || commits.length === 0) {
+        list.innerHTML = '<span class="text-sm text-base-content/40">No commits found.</span>';
+        return;
+      }
+      list.innerHTML = commits.map(function (c) {
+        const msg = c.commit.message.split('\n')[0];
+        const date = new Date(c.commit.author.date).toLocaleDateString();
+        const sha = c.sha.slice(0, 7);
+        return '<div class="flex items-start gap-3 bg-base-200 rounded-lg px-4 py-2">'
+          + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary mt-0.5 shrink-0">' + sha + '</a>'
+          + '<div class="flex-1 min-w-0">'
+          + '<p class="text-sm truncate">' + msg + '</p>'
+          + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
+          + '</div></div>';
+      }).join('');
+    })
+    .catch(function () {
+      document.getElementById('commits-list').innerHTML = '<span class="text-sm text-error">Failed to load commits.</span>';
+    });
+})();
+{{ end }}
+
+(function () {
+  const projectID = {{ .Project.ID }};
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
+
+  const COOKIE_NAME = 'chat_user_id';
+
+  function getCookie(name) {
+    return document.cookie.split('; ').reduce(function (acc, pair) {
+      const [k, v] = pair.split('=');
+      return k === name ? decodeURIComponent(v) : acc;
+    }, '');
+  }
+
+  function setCookie(name, value) {
+    document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
+  }
+
+  // Restore previously selected user.
+  const saved = getCookie(COOKIE_NAME);
+  if (saved) {
+    const sel = document.getElementById('chat-user');
+    sel.value = saved;
+  }
+
+  document.getElementById('chat-user').addEventListener('change', function () {
+    setCookie(COOKIE_NAME, this.value);
+  });
+
+  function escapeHTML(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function appendMessage(userName, content, createdAt) {
+    const box = document.getElementById('chat-messages');
+    const el = document.createElement('div');
+    el.className = 'text-sm';
+    const time = new Date(createdAt).toLocaleTimeString();
+    el.innerHTML = `<span class="font-semibold">${escapeHTML(userName)}</span> <span class="text-base-content/40 text-xs">${time}</span><br>${escapeHTML(content)}`;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  ws.onmessage = function (e) {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'history') {
+      msg.messages.forEach(m => appendMessage(m.user_name, m.content, m.created_at));
+    } else if (msg.type === 'message') {
+      appendMessage(msg.user_name, msg.content, msg.created_at);
+    }
+  };
+
+  function send() {
+    const userID = parseInt(document.getElementById('chat-user').value, 10);
+    const input = document.getElementById('chat-input');
+    const content = input.value.trim();
+    if (!content || !userID) return;
+    ws.send(JSON.stringify({ user_id: userID, content: content }));
+    input.value = '';
+  }
+
+  document.getElementById('chat-send').addEventListener('click', send);
+  document.getElementById('chat-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') send();
+  });
+})();
+</script>
 {{ end }}

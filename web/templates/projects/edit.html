@@ -17,6 +17,10 @@
         <option value="archived"{{ if eq .Project.Status "archived" }} selected{{ end }}>Archived</option>
       </select>
     </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">GitHub Repo</span></label>
+      <input type="text" name="github_repo" value="{{ .Project.GithubRepo }}" placeholder="owner/repo" class="input input-bordered" />
+    </div>
     <div class="flex gap-2">
       <button type="submit" class="btn btn-primary">Save</button>
       <a href="/projects/{{ .Project.ID }}" class="btn btn-ghost">Cancel</a>

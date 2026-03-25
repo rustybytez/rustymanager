@@ -38,6 +38,7 @@ func (h *Projects) Create(c echo.Context) error {
 		Name:        c.FormValue("name"),
 		Description: c.FormValue("description"),
 		Status:      "active",
+		GithubRepo:  c.FormValue("github_repo"),
 	}
 	if _, err := h.store.Queries().CreateProject(context.Background(), params); err != nil {
 		return err
@@ -58,9 +59,14 @@ func (h *Projects) Show(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	users, err := h.store.Queries().ListUsers(context.Background())
+	if err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, "projects/show.html", map[string]any{
 		"Project": project,
 		"Items":   items,
+		"Users":   users,
 	})
 }
 
@@ -88,6 +94,7 @@ func (h *Projects) Update(c echo.Context) error {
 		Name:        c.FormValue("name"),
 		Description: c.FormValue("description"),
 		Status:      c.FormValue("status"),
+		GithubRepo:  c.FormValue("github_repo"),
 	}
 	if _, err := h.store.Queries().UpdateProject(context.Background(), params); err != nil {
 		return err

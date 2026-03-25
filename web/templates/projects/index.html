@@ -18,7 +18,21 @@
     <tbody>
       {{ range .Projects }}
       <tr>
-        <td><a href="/projects/{{ .ID }}" class="link">{{ .Name }}</a></td>
+        <td>
+          <div class="flex items-center gap-2">
+            <a href="/projects/{{ .ID }}" class="link">{{ .Name }}</a>
+            {{ if .GithubRepo }}
+            <div class="dropdown dropdown-end">
+              <button tabindex="0" class="btn btn-ghost btn-xs text-base-content/40" onclick="loadProjectCommits({{ .ID }}, this)">{{ .GithubRepo }}</button>
+              <div tabindex="0" class="dropdown-content z-10 bg-base-100 border border-base-300 rounded-xl shadow-lg w-80 p-3">
+                <div id="commits-{{ .ID }}" class="flex flex-col gap-1">
+                  <span class="text-xs text-base-content/40">Loading…</span>
+                </div>
+              </div>
+            </div>
+            {{ end }}
+          </div>
+        </td>
         <td>{{ .Description }}</td>
         <td><span class="badge badge-outline">{{ .Status }}</span></td>
         <td>{{ .CreatedAt.Format "2006-01-02" }}</td>
@@ -35,4 +49,35 @@
     </tbody>
   </table>
 </div>
+
+<script>
+function loadProjectCommits(id, btn) {
+  if (btn.dataset.loaded) return;
+  btn.dataset.loaded = '1';
+  fetch('/projects/' + id + '/commits')
+    .then(function (r) { return r.json(); })
+    .then(function (commits) {
+      const el = document.getElementById('commits-' + id);
+      if (!commits || commits.length === 0) {
+        el.innerHTML = '<span class="text-xs text-base-content/40">No commits found.</span>';
+        return;
+      }
+      el.innerHTML = commits.map(function (c) {
+        const msg = c.commit.message.split('\n')[0];
+        const date = new Date(c.commit.author.date).toLocaleDateString();
+        const sha = c.sha.slice(0, 7);
+        return '<div class="flex items-start gap-2 py-1">'
+          + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary shrink-0">' + sha + '</a>'
+          + '<div class="flex-1 min-w-0">'
+          + '<p class="text-xs truncate">' + msg + '</p>'
+          + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
+          + '</div></div>';
+      }).join('');
+    })
+    .catch(function () {
+      const el = document.getElementById('commits-' + id);
+      el.innerHTML = '<span class="text-xs text-error">Failed to load.</span>';
+    });
+}
+</script>
 {{ end }}
