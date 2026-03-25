@@ -26,9 +26,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/rustymanager ./cm
 
 # Stage 3: Runtime
 FROM alpine:3.21
-RUN apk add --no-cache wget && adduser -D -u 1001 appuser && mkdir /data && chown appuser /data
+RUN apk add --no-cache wget && mkdir /data
 COPY --from=go-builder /bin/rustymanager /rustymanager
-USER appuser
 WORKDIR /data
 EXPOSE 8080
 ENTRYPOINT ["/rustymanager"]
