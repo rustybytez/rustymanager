@@ -25,7 +25,10 @@ COPY --from=css-builder /app/web/static/css/app.css ./web/static/css/app.css
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/rustymanager ./cmd/server
 
 # Stage 3: Runtime
-FROM gcr.io/distroless/static-debian12
+FROM alpine:3.21
+RUN apk add --no-cache wget && adduser -D -u 1001 appuser && mkdir /data && chown appuser /data
 COPY --from=go-builder /bin/rustymanager /rustymanager
+USER appuser
+WORKDIR /data
 EXPOSE 8080
 ENTRYPOINT ["/rustymanager"]
