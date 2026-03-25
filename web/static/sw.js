@@ -14,7 +14,17 @@ self.addEventListener('push', function (e) {
     tag: 'chat-' + (data.url || 'default'),
     renotify: true,
   };
-  e.waitUntil(self.registration.showNotification(title, options));
+  var targetUrl = data.url || '/';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].url.includes(targetUrl) && list[i].focused) {
+          return; // user is already looking at the page
+        }
+      }
+      return self.registration.showNotification(title, options);
+    })
+  );
 });
 
 self.addEventListener('notificationclick', function (e) {
