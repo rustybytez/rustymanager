@@ -1,23 +1,26 @@
 services:
   app:
     build: .
-    expose:
-      - "8080"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - AUTH_TOKEN=${AUTH_TOKEN}
+      - AUTH_TOKEN=${AUTH_TOKEN:-}
       - DATABASE_URL=${DATABASE_URL:-/data/rustymanager.db}
-      - PORT=8080
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
-      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - PORT=${PORT:-8080}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+    volumes:
+      - db_data:/data
+    user: appuser
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 30s
       timeout: 5s
-      start_period: 5s
       retries: 3
-    volumes:
-      - db_data:/data
+      start_period: 5s
 
 volumes:
   db_data:
