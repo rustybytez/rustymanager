@@ -30,9 +30,13 @@
               <td class="font-medium">{{ .Name }}</td>
               <td class="text-sm text-base-content/50">{{ .Username }}</td>
               <td class="text-sm text-base-content/50">{{ .CreatedAt.Format "2006-01-02" }}</td>
-              <td class="text-right">
+              <td class="text-right flex gap-1 justify-end">
                 <button class="btn btn-ghost btn-xs"
                   onclick="openResetModal({{ .ID }}, '{{ .Name }}')">Reset password</button>
+                {{ if ne .ID $.CurrentUserID }}
+                <button class="btn btn-ghost btn-xs text-error"
+                  onclick="openDeleteModal({{ .ID }}, '{{ .Name }}')">Delete</button>
+                {{ end }}
               </td>
             </tr>
             {{ end }}
@@ -45,6 +49,21 @@
     </div>
   </div>
 </div>
+
+<!-- Delete user modal -->
+<dialog id="delete-modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">Delete user</h3>
+    <p class="text-sm text-base-content/60 mb-4">Are you sure you want to delete <strong id="delete-user-name"></strong>? This action cannot be undone.</p>
+    <form id="delete-form" method="POST">
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('delete-modal').close()">Cancel</button>
+        <button type="submit" class="btn btn-error">Delete</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 
 <!-- Reset password modal -->
 <dialog id="reset-modal" class="modal">
@@ -70,6 +89,11 @@ function openResetModal(id, name) {
   document.getElementById('reset-user-name').textContent = name;
   document.getElementById('reset-form').action = '/settings/admin/users/' + id + '/reset-password';
   document.getElementById('reset-modal').showModal();
+}
+function openDeleteModal(id, name) {
+  document.getElementById('delete-user-name').textContent = name;
+  document.getElementById('delete-form').action = '/settings/admin/users/' + id + '/delete';
+  document.getElementById('delete-modal').showModal();
 }
 </script>
 {{ end }}

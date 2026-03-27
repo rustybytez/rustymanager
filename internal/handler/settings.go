@@ -29,12 +29,14 @@ func (h *Settings) Index(c echo.Context) error {
 }
 
 func (h *Settings) Admin(c echo.Context) error {
+	currentUser := c.Get(authmw.CurrentUserKey).(db.User)
 	users, err := h.store.Queries().ListUsers(context.Background())
 	if err != nil {
 		return err
 	}
 	return c.Render(http.StatusOK, "settings/admin.html", map[string]any{
-		"Users": users,
+		"Users":         users,
+		"CurrentUserID": currentUser.ID,
 	})
 }
 
@@ -55,6 +57,21 @@ func (h *Settings) ResetPassword(c echo.Context) error {
 		PasswordHash: string(hash),
 		ID:           id,
 	}); err != nil {
+		return err
+	}
+	return c.Redirect(http.StatusSeeOther, "/settings/admin")
+}
+
+func (h *Settings) DeleteUser(c echo.Context) error {
+	currentUser := c.Get(authmw.CurrentUserKey).(db.User)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	if id == currentUser.ID {
+		return echo.ErrForbidden
+	}
+	if err := h.store.Queries().DeleteUser(context.Background(), id); err != nil {
 		return err
 	}
 	return c.Redirect(http.StatusSeeOther, "/settings/admin")
