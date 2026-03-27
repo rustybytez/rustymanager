@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"database/sql"
 	"fmt"
 	"html/template"
@@ -24,8 +25,10 @@ import (
 )
 
 type renderer struct {
-	fsys fs.FS
-	base *template.Template
+	fsys       fs.FS
+	base       *template.Template
+	cssVersion string
+	swVersion  string
 }
 
 func newRenderer(fsys fs.FS) (*renderer, error) {
@@ -33,7 +36,21 @@ func newRenderer(fsys fs.FS) (*renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &renderer{fsys: fsys, base: base}, nil
+	return &renderer{
+		fsys:       fsys,
+		base:       base,
+		cssVersion: assetVersion(fsys, "static/css/output.css"),
+		swVersion:  assetVersion(fsys, "static/sw.js"),
+	}, nil
+}
+
+func assetVersion(fsys fs.FS, path string) string {
+	data, err := fs.ReadFile(fsys, path)
+	if err != nil {
+		return "1"
+	}
+	sum := md5.Sum(data)
+	return fmt.Sprintf("%x", sum[:4])
 }
 
 func (r *renderer) Render(w io.Writer, name string, data any, c echo.Context) error {
@@ -51,6 +68,8 @@ func (r *renderer) Render(w io.Writer, name string, data any, c echo.Context) er
 		if project := c.Get(authmw.CurrentProjectKey); project != nil {
 			m["CurrentProject"] = project
 		}
+		m["CSSVersion"] = r.cssVersion
+		m["SWVersion"] = r.swVersion
 	}
 	return t.ExecuteTemplate(w, "layout", data)
 }

@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="rustymanager" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <meta name="theme-color" content="#1d232a" />
-  <link rel="stylesheet" href="/static/css/output.css" />
+  <link rel="stylesheet" href="/static/css/output.css?v={{ .CSSVersion }}" />
 </head>
 <body>
   <div class="navbar bg-base-200 shadow-sm mb-6">
@@ -65,7 +65,7 @@
   </main>
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+  navigator.serviceWorker.register('/sw.js?v={{ .SWVersion }}', { updateViaCache: 'none' });
 }
 </script>
 </body>
