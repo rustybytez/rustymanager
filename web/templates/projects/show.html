@@ -404,17 +404,19 @@ document.addEventListener('keydown', function(e) {
   var currentRoomName = null;
   var jitsiAPI = null;
 
+  var JAAS_APP_ID = 'vpaas-magic-cookie-ed9a50f321834da99266052cb3acf0b3';
+
   function loadJitsiScript(cb) {
     if (window.JitsiMeetExternalAPI) { cb(); return; }
     var s = document.createElement('script');
-    s.src = 'https://meet.jit.si/external_api.js';
+    s.src = 'https://8x8.vc/' + JAAS_APP_ID + '/external_api.js';
     s.onload = cb;
     document.head.appendChild(s);
   }
 
   window.startCall = function() {
     if (currentRoomName) { openCallPanel(); return; }
-    var roomName = 'rustymanager-' + projectID + '-' + Date.now();
+    var roomName = JAAS_APP_ID + '/rustymanager-' + projectID + '-' + Date.now();
     ws.send(JSON.stringify({ type: 'call_start', user_id: currentUserID, room_name: roomName }));
     joinCall(roomName);
   };
@@ -422,21 +424,28 @@ document.addEventListener('keydown', function(e) {
   window.joinCall = function(roomName) {
     if (jitsiAPI) { openCallPanel(); return; }
     currentRoomName = roomName;
-    loadJitsiScript(function() {
-      jitsiAPI = new window.JitsiMeetExternalAPI('meet.jit.si', {
-        roomName: roomName,
-        parentNode: document.getElementById('jitsi-container'),
-        width: '100%',
-        height: '100%',
-        configOverwrite: { startWithAudioMuted: false },
-        interfaceConfigOverwrite: { SHOW_JITSI_WATERMARK: false },
+    fetch('/call/token?room=' + encodeURIComponent(roomName))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        loadJitsiScript(function() {
+          jitsiAPI = new window.JitsiMeetExternalAPI('8x8.vc', {
+            roomName: roomName,
+            jwt: data.token,
+            parentNode: document.getElementById('jitsi-container'),
+            width: '100%',
+            height: '100%',
+          });
+          jitsiAPI.addEventListeners({
+            videoConferenceJoined: function() { openCallPanel(); },
+            readyToClose: function() { leaveCall(false); },
+          });
+          openCallPanel();
+        });
+      })
+      .catch(function(err) {
+        console.error('Failed to get call token:', err);
+        currentRoomName = null;
       });
-      jitsiAPI.addEventListeners({
-        videoConferenceJoined: function() { openCallPanel(); },
-        readyToClose: function() { leaveCall(false); },
-      });
-      openCallPanel();
-    });
   };
 
   // skipNotify=true when leaveCall is triggered by receiving a call_end event

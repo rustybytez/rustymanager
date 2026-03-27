@@ -172,6 +172,12 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.GET("/projects/:id/ws", chat.HandleWS)
 	p.GET("/projects/:id/chat/history", chat.HandleHistory)
 
+	jaas, err := handler.NewJaaSHandler()
+	if err != nil {
+		return nil, fmt.Errorf("JaaS: %w", err)
+	}
+	p.GET("/call/token", jaas.Token)
+
 	// MCP server — authenticated by Bearer API token
 	e.Any("/mcp", echo.WrapHandler(mcphandler.Handler(s)))
 
