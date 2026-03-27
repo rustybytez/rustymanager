@@ -10,23 +10,17 @@ import (
 )
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (name, description, status, github_repo) VALUES (?, ?, ?, ?) RETURNING id, name, description, status, created_at, updated_at, created_by, updated_by, github_repo
+INSERT INTO projects (name, description, status) VALUES (?, ?, ?) RETURNING id, name, description, status, created_at, updated_at, created_by, updated_by, github_repo
 `
 
 type CreateProjectParams struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
-	GithubRepo  string `json:"github_repo"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
-	row := q.db.QueryRowContext(ctx, createProject,
-		arg.Name,
-		arg.Description,
-		arg.Status,
-		arg.GithubRepo,
-	)
+	row := q.db.QueryRowContext(ctx, createProject, arg.Name, arg.Description, arg.Status)
 	var i Project
 	err := row.Scan(
 		&i.ID,
@@ -114,7 +108,6 @@ UPDATE projects
 SET name        = ?,
     description = ?,
     status      = ?,
-    github_repo = ?,
     updated_at  = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 WHERE id = ?
 RETURNING id, name, description, status, created_at, updated_at, created_by, updated_by, github_repo
@@ -124,7 +117,6 @@ type UpdateProjectParams struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
-	GithubRepo  string `json:"github_repo"`
 	ID          int64  `json:"id"`
 }
 
@@ -133,7 +125,6 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		arg.Name,
 		arg.Description,
 		arg.Status,
-		arg.GithubRepo,
 		arg.ID,
 	)
 	var i Project

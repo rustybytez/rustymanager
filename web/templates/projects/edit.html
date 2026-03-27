@@ -17,50 +17,10 @@
         <option value="archived"{{ if eq .Project.Status "archived" }} selected{{ end }}>Archived</option>
       </select>
     </fieldset>
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">GitHub Repo</legend>
-      <div class="join w-full">
-        <input id="github-repo-input" type="text" name="github_repo" value="{{ .Project.GithubRepo }}" placeholder="owner/repo" class="input join-item flex-1" />
-        <button type="button" id="btn-test-github" class="btn btn-outline join-item">Test</button>
-      </div>
-      <span id="github-test-result" class="text-xs mt-1 hidden"></span>
-    </fieldset>
     <div class="flex gap-2 mt-2">
       <button type="submit" class="btn btn-primary">Save</button>
       <a href="/projects/{{ .Project.ID }}" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
 </div>
-
-<script>
-(function () {
-  var btn = document.getElementById('btn-test-github');
-  var input = document.getElementById('github-repo-input');
-  var result = document.getElementById('github-test-result');
-
-  btn.addEventListener('click', function () {
-    var repo = input.value.trim();
-    btn.disabled = true;
-    btn.textContent = 'Testing…';
-    result.textContent = '';
-    result.classList.remove('hidden');
-    result.className = 'text-xs mt-1 text-base-content/40';
-
-    fetch('/projects/{{ .Project.ID }}/test-github?repo=' + encodeURIComponent(repo))
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        result.textContent = data.message;
-        result.className = 'text-xs mt-1 ' + (data.ok ? 'text-success' : 'text-error');
-      })
-      .catch(function () {
-        result.textContent = 'Request failed';
-        result.className = 'text-xs mt-1 text-error';
-      })
-      .finally(function () {
-        btn.disabled = false;
-        btn.textContent = 'Test';
-      });
-  });
-})();
-</script>
 {{ end }}

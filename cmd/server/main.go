@@ -13,9 +13,6 @@ func main() {
 	if os.Getenv("AUTH_TOKEN") == "" {
 		log.Fatal("AUTH_TOKEN is required")
 	}
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		log.Fatal("GITHUB_TOKEN is required")
-	}
 	if os.Getenv("VAPID_PUBLIC_KEY") == "" || os.Getenv("VAPID_PRIVATE_KEY") == "" {
 		log.Fatal("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required — run: make vapid")
 	}

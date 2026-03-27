@@ -108,25 +108,6 @@
     </div>
   </div>
 
-  <!-- GitHub / Commits section -->
-  {{ if .Project.GithubRepo }}
-  <div id="section-github">
-    <div class="mt-4 md:mt-8">
-      <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-lg font-semibold">Recent Commits</h2>
-        <a href="https://github.com/{{ .Project.GithubRepo }}" target="_blank" class="text-xs text-base-content/40 hover:text-primary">{{ .Project.GithubRepo }}</a>
-        <button id="commits-reload" class="btn btn-ghost btn-xs ml-auto text-base-content/40">↺ Reload</button>
-      </div>
-      <div id="commits-list" class="flex flex-col gap-2">
-        <span class="text-sm text-base-content/40">Loading commits…</span>
-      </div>
-      <div class="mt-3 flex justify-center">
-        <button id="commits-load-more" class="btn btn-ghost btn-sm hidden">Load more</button>
-      </div>
-    </div>
-  </div>
-  {{ end }}
-
   <!-- Chat section -->
   <div id="section-chat">
     <div class="mt-4 md:mt-8">
@@ -153,14 +134,6 @@
     </svg>
     <span class="btm-nav-label">Kanban</span>
   </button>
-  {{ if .Project.GithubRepo }}
-  <button data-tab="github" onclick="switchTab('github')">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
-    </svg>
-    <span class="btm-nav-label">GitHub</span>
-  </button>
-  {{ end }}
   <button data-tab="chat" onclick="switchTab('chat')" class="active">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -171,7 +144,7 @@
 
 <script>
 // Tab switching (mobile only)
-var TABS = ['kanban', 'github', 'chat'];
+var TABS = ['kanban', 'chat'];
 
 function isMobile() { return window.innerWidth < 768; }
 
@@ -202,75 +175,6 @@ function initTabs() {
 
 initTabs();
 window.addEventListener('resize', initTabs);
-
-{{ if .Project.GithubRepo }}
-(function () {
-  var currentPage = 1;
-  var pageSize = 5;
-  var loading = false;
-
-  function renderCommit(c) {
-    const msg = c.commit.message.split('\n')[0];
-    const date = new Date(c.commit.author.date).toLocaleDateString();
-    const sha = c.sha.slice(0, 7);
-    return '<div class="flex items-start gap-3 bg-base-200 rounded-lg px-4 py-2">'
-      + '<a href="' + c.html_url + '" target="_blank" class="font-mono text-xs text-primary mt-0.5 shrink-0">' + sha + '</a>'
-      + '<div class="flex-1 min-w-0">'
-      + '<p class="text-sm truncate">' + msg + '</p>'
-      + '<p class="text-xs text-base-content/40">' + c.commit.author.name + ' &middot; ' + date + '</p>'
-      + '</div></div>';
-  }
-
-  function loadCommits(page, append) {
-    if (loading) return;
-    loading = true;
-    const list = document.getElementById('commits-list');
-    const loadMore = document.getElementById('commits-load-more');
-    if (!append) {
-      list.innerHTML = '<span class="text-sm text-base-content/40">Loading commits\u2026</span>';
-      loadMore.classList.add('hidden');
-    } else {
-      loadMore.textContent = 'Loading…';
-      loadMore.disabled = true;
-    }
-    fetch('/projects/{{ .Project.ID }}/commits?page=' + page)
-      .then(function (r) { return r.json(); })
-      .then(function (commits) {
-        loading = false;
-        if (!commits || commits.length === 0) {
-          if (!append) list.innerHTML = '<span class="text-sm text-base-content/40">No commits found.</span>';
-          loadMore.classList.add('hidden');
-          return;
-        }
-        if (!append) list.innerHTML = '';
-        list.insertAdjacentHTML('beforeend', commits.map(renderCommit).join(''));
-        if (commits.length < pageSize) {
-          loadMore.classList.add('hidden');
-        } else {
-          loadMore.textContent = 'Load more';
-          loadMore.disabled = false;
-          loadMore.classList.remove('hidden');
-          currentPage = page;
-        }
-      })
-      .catch(function () {
-        loading = false;
-        if (!append) list.innerHTML = '<span class="text-sm text-error">Failed to load commits.</span>';
-        loadMore.textContent = 'Load more';
-        loadMore.disabled = false;
-      });
-  }
-
-  document.getElementById('commits-reload').addEventListener('click', function () {
-    currentPage = 1;
-    loadCommits(1, false);
-  });
-  document.getElementById('commits-load-more').addEventListener('click', function () {
-    loadCommits(currentPage + 1, true);
-  });
-  loadCommits(1, false);
-})();
-{{ end }}
 
 (function () {
   const projectID = {{ .Project.ID }};

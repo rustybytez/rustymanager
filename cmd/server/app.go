@@ -156,7 +156,6 @@ func newApp(dsn string) (*echo.Echo, error) {
 	rp.GET("/projects/:id/edit", h.Edit)
 	rp.POST("/projects/:id", h.Update)
 	rp.POST("/projects/:id/delete", h.Delete)
-	rp.GET("/projects/:id/test-github", h.TestGitHub)
 
 	k := handler.NewKanban(s)
 	rp.GET("/projects/:id/kanban/new", k.New)
@@ -168,9 +167,6 @@ func newApp(dsn string) (*echo.Echo, error) {
 	chat := handler.NewChatChannel(queries, pushSender)
 	p.GET("/projects/:id/ws", chat.HandleWS)
 	p.GET("/projects/:id/chat/history", chat.HandleHistory)
-
-	commits := handler.NewCommits(s)
-	p.GET("/projects/:id/commits", commits.List)
 
 	return e, nil
 }
