@@ -118,6 +118,8 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.GET("/select-user", u.SelectPage)
 	p.POST("/select-user", u.Select)
 	p.POST("/switch-user", u.SwitchUser)
+	p.GET("/users/new", u.New)
+	p.POST("/users", u.Create)
 
 	// Auth + user-selection required
 	r := p.Group("")
@@ -147,8 +149,6 @@ func newApp(dsn string) (*echo.Echo, error) {
 	r.POST("/projects", h.Create)
 
 	r.GET("/users", u.Index)
-	r.GET("/users/new", u.New)
-	r.POST("/users", u.Create)
 	r.GET("/users/:id/edit", u.Edit)
 	r.POST("/users/:id", u.Update)
 	r.POST("/users/:id/delete", u.Delete)

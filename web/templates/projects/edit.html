@@ -1,31 +1,31 @@
 {{ define "content" }}
 <div class="max-w-lg mx-auto">
   <h1 class="text-2xl font-bold mb-4">Edit Project</h1>
-  <form method="POST" action="/projects/{{ .Project.ID }}" class="flex flex-col gap-4">
-    <div class="form-control">
-      <label class="label"><span class="label-text">Name</span></label>
-      <input type="text" name="name" value="{{ .Project.Name }}" class="input input-bordered" required />
-    </div>
-    <div class="form-control">
-      <label class="label"><span class="label-text">Description</span></label>
-      <textarea name="description" class="textarea textarea-bordered">{{ .Project.Description }}</textarea>
-    </div>
-    <div class="form-control">
-      <label class="label"><span class="label-text">Status</span></label>
-      <select name="status" class="select select-bordered">
+  <form method="POST" action="/projects/{{ .Project.ID }}" class="flex flex-col gap-2">
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Name</legend>
+      <input type="text" name="name" value="{{ .Project.Name }}" class="input w-full" required />
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Description</legend>
+      <textarea name="description" class="textarea w-full">{{ .Project.Description }}</textarea>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Status</legend>
+      <select name="status" class="select w-full">
         <option value="active"{{ if eq .Project.Status "active" }} selected{{ end }}>Active</option>
         <option value="archived"{{ if eq .Project.Status "archived" }} selected{{ end }}>Archived</option>
       </select>
-    </div>
-    <div class="form-control">
-      <label class="label"><span class="label-text">GitHub Repo</span></label>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">GitHub Repo</legend>
       <div class="join w-full">
-        <input id="github-repo-input" type="text" name="github_repo" value="{{ .Project.GithubRepo }}" placeholder="owner/repo" class="input input-bordered join-item flex-1" />
+        <input id="github-repo-input" type="text" name="github_repo" value="{{ .Project.GithubRepo }}" placeholder="owner/repo" class="input join-item flex-1" />
         <button type="button" id="btn-test-github" class="btn btn-outline join-item">Test</button>
       </div>
       <span id="github-test-result" class="text-xs mt-1 hidden"></span>
-    </div>
-    <div class="flex gap-2">
+    </fieldset>
+    <div class="flex gap-2 mt-2">
       <button type="submit" class="btn btn-primary">Save</button>
       <a href="/projects/{{ .Project.ID }}" class="btn btn-ghost">Cancel</a>
     </div>

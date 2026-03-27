@@ -8,11 +8,11 @@
         <span>{{ .Error }}</span>
       </div>
       {{ end }}
-      <form method="POST" action="/login" class="flex flex-col gap-4">
-        <div class="form-control">
-          <label class="label"><span class="label-text">Token</span></label>
-          <input type="password" name="token" class="input input-bordered" autofocus required />
-        </div>
+      <form method="POST" action="/login" class="flex flex-col gap-2">
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Token</legend>
+          <input type="password" name="token" class="input w-full" autofocus required />
+        </fieldset>
         <button type="submit" class="btn btn-primary w-full">Sign in</button>
       </form>
     </div>
