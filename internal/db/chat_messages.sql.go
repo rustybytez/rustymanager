@@ -12,32 +12,61 @@ import (
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
-INSERT INTO chat_messages (project_id, user_id, content)
-VALUES (?, ?, ?)
-RETURNING id, project_id, user_id, content, created_at
+INSERT INTO chat_messages (project_id, user_id, content, message_type, room_name)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, project_id, user_id, content, message_type, room_name, created_at
 `
 
 type CreateChatMessageParams struct {
-	ProjectID int64         `json:"project_id"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	Content   string        `json:"content"`
+	ProjectID   int64         `json:"project_id"`
+	UserID      sql.NullInt64 `json:"user_id"`
+	Content     string        `json:"content"`
+	MessageType string        `json:"message_type"`
+	RoomName    string        `json:"room_name"`
 }
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, createChatMessage, arg.ProjectID, arg.UserID, arg.Content)
+	row := q.db.QueryRowContext(ctx, createChatMessage,
+		arg.ProjectID,
+		arg.UserID,
+		arg.Content,
+		arg.MessageType,
+		arg.RoomName,
+	)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
 		&i.UserID,
 		&i.Content,
+		&i.MessageType,
+		&i.RoomName,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getActiveCallForProject = `-- name: GetActiveCallForProject :one
+SELECT room_name, message_type FROM chat_messages
+WHERE project_id = ? AND message_type IN ('call_start', 'call_end')
+ORDER BY id DESC
+LIMIT 1
+`
+
+type GetActiveCallForProjectRow struct {
+	RoomName    string `json:"room_name"`
+	MessageType string `json:"message_type"`
+}
+
+func (q *Queries) GetActiveCallForProject(ctx context.Context, projectID int64) (GetActiveCallForProjectRow, error) {
+	row := q.db.QueryRowContext(ctx, getActiveCallForProject, projectID)
+	var i GetActiveCallForProjectRow
+	err := row.Scan(&i.RoomName, &i.MessageType)
+	return i, err
+}
+
 const listChatMessagesBefore = `-- name: ListChatMessagesBefore :many
-SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.created_at,
+SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name, cm.created_at,
        COALESCE(u.name, 'Anonymous') AS user_name
 FROM chat_messages cm
 LEFT JOIN users u ON cm.user_id = u.id
@@ -52,12 +81,14 @@ type ListChatMessagesBeforeParams struct {
 }
 
 type ListChatMessagesBeforeRow struct {
-	ID        int64         `json:"id"`
-	ProjectID int64         `json:"project_id"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	Content   string        `json:"content"`
-	CreatedAt time.Time     `json:"created_at"`
-	UserName  string        `json:"user_name"`
+	ID          int64         `json:"id"`
+	ProjectID   int64         `json:"project_id"`
+	UserID      sql.NullInt64 `json:"user_id"`
+	Content     string        `json:"content"`
+	MessageType string        `json:"message_type"`
+	RoomName    string        `json:"room_name"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UserName    string        `json:"user_name"`
 }
 
 func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessagesBeforeParams) ([]ListChatMessagesBeforeRow, error) {
@@ -74,6 +105,8 @@ func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessag
 			&i.ProjectID,
 			&i.UserID,
 			&i.Content,
+			&i.MessageType,
+			&i.RoomName,
 			&i.CreatedAt,
 			&i.UserName,
 		); err != nil {
@@ -91,7 +124,7 @@ func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessag
 }
 
 const listChatMessagesByProject = `-- name: ListChatMessagesByProject :many
-SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.created_at,
+SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name, cm.created_at,
        COALESCE(u.name, 'Anonymous') AS user_name
 FROM chat_messages cm
 LEFT JOIN users u ON cm.user_id = u.id
@@ -101,12 +134,14 @@ LIMIT 100
 `
 
 type ListChatMessagesByProjectRow struct {
-	ID        int64         `json:"id"`
-	ProjectID int64         `json:"project_id"`
-	UserID    sql.NullInt64 `json:"user_id"`
-	Content   string        `json:"content"`
-	CreatedAt time.Time     `json:"created_at"`
-	UserName  string        `json:"user_name"`
+	ID          int64         `json:"id"`
+	ProjectID   int64         `json:"project_id"`
+	UserID      sql.NullInt64 `json:"user_id"`
+	Content     string        `json:"content"`
+	MessageType string        `json:"message_type"`
+	RoomName    string        `json:"room_name"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UserName    string        `json:"user_name"`
 }
 
 func (q *Queries) ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error) {
@@ -123,6 +158,8 @@ func (q *Queries) ListChatMessagesByProject(ctx context.Context, projectID int64
 			&i.ProjectID,
 			&i.UserID,
 			&i.Content,
+			&i.MessageType,
+			&i.RoomName,
 			&i.CreatedAt,
 			&i.UserName,
 		); err != nil {

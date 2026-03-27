@@ -56,3 +56,6 @@ ALTER TABLE users ADD COLUMN username TEXT NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT '';
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username) WHERE username != '';
 ALTER TABLE users ADD COLUMN api_token TEXT;
+
+ALTER TABLE chat_messages ADD COLUMN message_type TEXT NOT NULL DEFAULT 'message';
+ALTER TABLE chat_messages ADD COLUMN room_name TEXT NOT NULL DEFAULT '';

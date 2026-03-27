@@ -23,17 +23,19 @@ type PushSender interface {
 
 // ChatChannel manages WebSocket clients grouped by project.
 type ChatChannel struct {
-	mu      sync.RWMutex
-	rooms   map[int64]map[*chatClient]bool
-	queries db.Querier
-	push    PushSender
+	mu          sync.RWMutex
+	rooms       map[int64]map[*chatClient]bool
+	activeCalls map[int64]string // projectID → room name, "" if none
+	queries     db.Querier
+	push        PushSender
 }
 
 func NewChatChannel(q db.Querier, ps PushSender) *ChatChannel {
 	return &ChatChannel{
-		rooms:   make(map[int64]map[*chatClient]bool),
-		queries: q,
-		push:    ps,
+		rooms:       make(map[int64]map[*chatClient]bool),
+		activeCalls: make(map[int64]string),
+		queries:     q,
+		push:        ps,
 	}
 }
 
@@ -47,17 +49,21 @@ type chatClient struct {
 
 // incomingMsg is what the browser sends.
 type incomingMsg struct {
-	UserID  int64  `json:"user_id"`
-	Content string `json:"content"`
+	Type     string `json:"type"` // "message" | "call_start" | "call_end"
+	UserID   int64  `json:"user_id"`
+	Content  string `json:"content"`
+	RoomName string `json:"room_name"` // for call events
 }
 
 // outgoingMsg is what the server sends for a single message.
 type outgoingMsg struct {
 	Type      string `json:"type"`
 	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
 	UserName  string `json:"user_name"`
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
+	RoomName  string `json:"room_name,omitempty"`
 }
 
 // historyMsg is the initial payload sent on connect.
@@ -131,14 +137,46 @@ func (ch *ChatChannel) HandleWS(c echo.Context) error {
 		msgs := make([]outgoingMsg, len(rows))
 		for i, r := range rows {
 			msgs[len(rows)-1-i] = outgoingMsg{
-				Type:      "message",
+				Type:      r.MessageType,
 				ID:        r.ID,
+				UserID:    r.UserID.Int64,
 				UserName:  r.UserName,
 				Content:   r.Content,
 				CreatedAt: r.CreatedAt.Format(time.RFC3339),
+				RoomName:  r.RoomName,
 			}
 		}
 		if b, err := json.Marshal(historyMsg{Type: "history", Messages: msgs}); err == nil {
+			client.send <- b
+		}
+	}
+
+	// Notify late joiners if a call is active.
+	// First check in-memory map; lazy-load from DB if not set (e.g. after restart).
+	ch.mu.RLock()
+	activeRoom, known := ch.activeCalls[projectID]
+	ch.mu.RUnlock()
+	if !known {
+		// Not in map yet — query DB to find out.
+		if row, err := ch.queries.GetActiveCallForProject(ctx, projectID); err == nil && row.MessageType == "call_start" {
+			activeRoom = row.RoomName
+			ch.mu.Lock()
+			ch.activeCalls[projectID] = activeRoom
+			ch.mu.Unlock()
+		} else {
+			// Mark as known-empty so we don't re-query every connect.
+			ch.mu.Lock()
+			ch.activeCalls[projectID] = ""
+			ch.mu.Unlock()
+		}
+	}
+	if activeRoom != "" {
+		synth := outgoingMsg{
+			Type:     "call_start",
+			RoomName: activeRoom,
+			Content:  "A call is in progress",
+		}
+		if b, err := json.Marshal(synth); err == nil {
 			client.send <- b
 		}
 	}
@@ -164,57 +202,129 @@ func (c *chatClient) readPump(ctx context.Context) {
 		}
 
 		var in incomingMsg
-		if err := json.Unmarshal(raw, &in); err != nil || in.Content == "" {
+		if err := json.Unmarshal(raw, &in); err != nil {
 			continue
 		}
 
-		var userID sql.NullInt64
-		if in.UserID > 0 {
-			userID = sql.NullInt64{Int64: in.UserID, Valid: true}
-		}
-
-		saved, err := c.ch.queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
-			ProjectID: c.projectID,
-			UserID:    userID,
-			Content:   in.Content,
-		})
-		if err != nil {
-			log.Printf("chat: save message: %v", err)
-			continue
-		}
-
-		userName := "Anonymous"
-		if userID.Valid {
-			if u, err := c.ch.queries.GetUser(ctx, userID.Int64); err == nil {
-				userName = u.Name
+		switch in.Type {
+		case "call_start", "call_end":
+			c.ch.handleCallEvent(ctx, c, in)
+		default:
+			// "message" or legacy (no type field)
+			if in.Content == "" {
+				continue
 			}
-		}
-
-		out := outgoingMsg{
-			Type:      "message",
-			ID:        saved.ID,
-			UserName:  userName,
-			Content:   saved.Content,
-			CreatedAt: saved.CreatedAt.Format(time.RFC3339),
-		}
-		b, err := json.Marshal(out)
-		if err != nil {
-			continue
-		}
-		c.ch.broadcast(c.projectID, b)
-
-		if c.ch.push != nil {
-			project, err := c.ch.queries.GetProject(ctx, c.projectID)
-			projectName := fmt.Sprintf("project %d", c.projectID)
-			if err == nil {
-				projectName = project.Name
-			}
-			title := "New message in " + projectName
-			body := userName + ": " + out.Content
-			url := fmt.Sprintf("/projects/%d", c.projectID)
-			go c.ch.push.Send(context.Background(), title, body, url)
+			c.ch.handleChatMessage(ctx, c, in)
 		}
 	}
+}
+
+func (ch *ChatChannel) handleChatMessage(ctx context.Context, c *chatClient, in incomingMsg) {
+	var userID sql.NullInt64
+	if in.UserID > 0 {
+		userID = sql.NullInt64{Int64: in.UserID, Valid: true}
+	}
+
+	saved, err := ch.queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
+		ProjectID:   c.projectID,
+		UserID:      userID,
+		Content:     in.Content,
+		MessageType: "message",
+		RoomName:    "",
+	})
+	if err != nil {
+		log.Printf("chat: save message: %v", err)
+		return
+	}
+
+	userName := "Anonymous"
+	if userID.Valid {
+		if u, err := ch.queries.GetUser(ctx, userID.Int64); err == nil {
+			userName = u.Name
+		}
+	}
+
+	out := outgoingMsg{
+		Type:      "message",
+		ID:        saved.ID,
+		UserID:    userID.Int64,
+		UserName:  userName,
+		Content:   saved.Content,
+		CreatedAt: saved.CreatedAt.Format(time.RFC3339),
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return
+	}
+	ch.broadcast(c.projectID, b)
+
+	if ch.push != nil {
+		project, err := ch.queries.GetProject(ctx, c.projectID)
+		projectName := fmt.Sprintf("project %d", c.projectID)
+		if err == nil {
+			projectName = project.Name
+		}
+		title := "New message in " + projectName
+		body := userName + ": " + out.Content
+		url := fmt.Sprintf("/projects/%d", c.projectID)
+		go ch.push.Send(context.Background(), title, body, url)
+	}
+}
+
+func (ch *ChatChannel) handleCallEvent(ctx context.Context, c *chatClient, in incomingMsg) {
+	if in.RoomName == "" {
+		return
+	}
+
+	var userID sql.NullInt64
+	if in.UserID > 0 {
+		userID = sql.NullInt64{Int64: in.UserID, Valid: true}
+	}
+
+	content := "started a call"
+	if in.Type == "call_end" {
+		content = "ended a call"
+	}
+
+	saved, err := ch.queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
+		ProjectID:   c.projectID,
+		UserID:      userID,
+		Content:     content,
+		MessageType: in.Type,
+		RoomName:    in.RoomName,
+	})
+	if err != nil {
+		log.Printf("chat: save call event: %v", err)
+		return
+	}
+
+	userName := "Anonymous"
+	if userID.Valid {
+		if u, err := ch.queries.GetUser(ctx, userID.Int64); err == nil {
+			userName = u.Name
+		}
+	}
+
+	// Update in-memory active call map.
+	ch.mu.Lock()
+	if in.Type == "call_start" {
+		ch.activeCalls[c.projectID] = in.RoomName
+	} else {
+		ch.activeCalls[c.projectID] = ""
+	}
+	ch.mu.Unlock()
+
+	out := outgoingMsg{
+		Type:      in.Type,
+		ID:        saved.ID,
+		UserID:    userID.Int64,
+		UserName:  userName,
+		Content:   content,
+		CreatedAt: saved.CreatedAt.Format(time.RFC3339),
+		RoomName:  in.RoomName,
+	}
+	b, _ := json.Marshal(out)
+	ch.broadcast(c.projectID, b)
 }
 
 // HandleHistory returns older messages before a given message ID as JSON.
@@ -239,11 +349,13 @@ func (ch *ChatChannel) HandleHistory(c echo.Context) error {
 	msgs := make([]outgoingMsg, len(rows))
 	for i, r := range rows {
 		msgs[len(rows)-1-i] = outgoingMsg{
-			Type:      "message",
+			Type:      r.MessageType,
 			ID:        r.ID,
+			UserID:    r.UserID.Int64,
 			UserName:  r.UserName,
 			Content:   r.Content,
 			CreatedAt: r.CreatedAt.Format(time.RFC3339),
+			RoomName:  r.RoomName,
 		}
 	}
 	return c.JSON(200, msgs)

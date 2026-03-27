@@ -18,6 +18,7 @@ type Querier interface {
 	DeleteProject(ctx context.Context, id int64) error
 	DeletePushSubscription(ctx context.Context, endpoint string) error
 	DeleteUser(ctx context.Context, id int64) error
+	GetActiveCallForProject(ctx context.Context, projectID int64) (GetActiveCallForProjectRow, error)
 	GetKanbanItem(ctx context.Context, id int64) (KanbanItem, error)
 	GetProject(ctx context.Context, id int64) (Project, error)
 	GetUser(ctx context.Context, id int64) (User, error)
