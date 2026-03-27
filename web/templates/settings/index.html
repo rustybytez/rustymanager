@@ -36,13 +36,56 @@
 
       </div>
 
-      <!-- Not supported -->
+      <!-- Push not supported -->
       <div id="notif-unsupported" class="hidden">
         <p class="text-sm text-base-content/40">Push notifications are not supported in this browser.</p>
       </div>
     </div>
   </div>
 </div>
+
+  <!-- API Access -->
+  <div class="card bg-base-100 border border-base-300 shadow-sm mt-4">
+    <div class="card-body gap-4">
+      <h2 class="card-title text-base">API Access</h2>
+      <p class="text-sm text-base-content/60">Use an API token to authenticate MCP clients (e.g. Claude Code).</p>
+
+      {{ if .CurrentUser.ApiToken.Valid }}
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium">Your token</label>
+        <div class="join w-full">
+          <input id="api-token-display" type="password" readonly value="{{ .CurrentUser.ApiToken.String }}"
+            class="input input-sm join-item flex-1 font-mono text-xs" />
+          <button onclick="toggleToken()" class="btn btn-sm btn-ghost join-item">Show</button>
+          <button onclick="copyToken()" class="btn btn-sm btn-ghost join-item">Copy</button>
+        </div>
+        <p class="text-xs text-base-content/40">Keep this secret. It grants full API access to your account.</p>
+        <form method="POST" action="/settings/api-token/revoke" class="mt-1">
+          <button class="btn btn-xs btn-error btn-outline" onclick="return confirm('Revoke your API token? Any MCP clients using it will stop working.')">Revoke token</button>
+        </form>
+      </div>
+      {{ else }}
+      <div>
+        <p class="text-sm text-base-content/50 mb-3">No token generated yet.</p>
+        <form method="POST" action="/settings/api-token">
+          <button class="btn btn-primary btn-sm">Generate token</button>
+        </form>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleToken() {
+  var input = document.getElementById('api-token-display');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+function copyToken() {
+  var input = document.getElementById('api-token-display');
+  navigator.clipboard.writeText(input.value);
+}
+</script>
 
 <script>
 (function () {

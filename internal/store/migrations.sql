@@ -55,3 +55,4 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 ALTER TABLE users ADD COLUMN username TEXT NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT '';
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_idx ON users(username) WHERE username != '';
+ALTER TABLE users ADD COLUMN api_token TEXT;

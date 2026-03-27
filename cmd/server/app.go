@@ -16,6 +16,7 @@ import (
 
 	"rustymanager/internal/db"
 	"rustymanager/internal/handler"
+	mcphandler "rustymanager/internal/mcp"
 	authmw "rustymanager/internal/middleware"
 	"rustymanager/internal/push"
 	"rustymanager/internal/store"
@@ -128,7 +129,10 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.POST("/push/subscribe", pushHandler.Subscribe)
 	p.DELETE("/push/subscribe", pushHandler.Unsubscribe)
 
-	p.GET("/settings", handler.Settings)
+	settings := handler.NewSettings(s)
+	p.GET("/settings", settings.Index)
+	p.POST("/settings/api-token", settings.GenerateAPIToken)
+	p.POST("/settings/api-token/revoke", settings.RevokeAPIToken)
 
 	h := handler.NewProjects(s)
 	p.GET("/select-project", h.SelectProjectPage)
@@ -167,6 +171,9 @@ func newApp(dsn string) (*echo.Echo, error) {
 	chat := handler.NewChatChannel(queries, pushSender)
 	p.GET("/projects/:id/ws", chat.HandleWS)
 	p.GET("/projects/:id/chat/history", chat.HandleHistory)
+
+	// MCP server — authenticated by Bearer API token
+	e.Any("/mcp", echo.WrapHandler(mcphandler.Handler(s)))
 
 	return e, nil
 }

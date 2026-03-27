@@ -7,10 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (name, username, password_hash) VALUES (?, ?, ?) RETURNING id, name, username, password_hash, created_at, updated_at, created_by, updated_by
+INSERT INTO users (name, username, password_hash) VALUES (?, ?, ?) RETURNING id, name, username, password_hash, api_token, created_at, updated_at, created_by, updated_by
 `
 
 type CreateUserParams struct {
@@ -27,6 +28,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Name,
 		&i.Username,
 		&i.PasswordHash,
+		&i.ApiToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -45,7 +47,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, username, password_hash, created_at, updated_at, created_by, updated_by FROM users WHERE id = ? LIMIT 1
+SELECT id, name, username, password_hash, api_token, created_at, updated_at, created_by, updated_by FROM users WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
@@ -56,6 +58,28 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Name,
 		&i.Username,
 		&i.PasswordHash,
+		&i.ApiToken,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+	)
+	return i, err
+}
+
+const getUserByAPIToken = `-- name: GetUserByAPIToken :one
+SELECT id, name, username, password_hash, api_token, created_at, updated_at, created_by, updated_by FROM users WHERE api_token = ? LIMIT 1
+`
+
+func (q *Queries) GetUserByAPIToken(ctx context.Context, apiToken sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByAPIToken, apiToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Username,
+		&i.PasswordHash,
+		&i.ApiToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -65,7 +89,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, username, password_hash, created_at, updated_at, created_by, updated_by FROM users WHERE username = ? LIMIT 1
+SELECT id, name, username, password_hash, api_token, created_at, updated_at, created_by, updated_by FROM users WHERE username = ? LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -76,6 +100,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Name,
 		&i.Username,
 		&i.PasswordHash,
+		&i.ApiToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -85,7 +110,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, username, password_hash, created_at, updated_at, created_by, updated_by FROM users ORDER BY name
+SELECT id, name, username, password_hash, api_token, created_at, updated_at, created_by, updated_by FROM users ORDER BY name
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -102,6 +127,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Name,
 			&i.Username,
 			&i.PasswordHash,
+			&i.ApiToken,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CreatedBy,
@@ -120,12 +146,26 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const setUserAPIToken = `-- name: SetUserAPIToken :exec
+UPDATE users SET api_token = ? WHERE id = ?
+`
+
+type SetUserAPITokenParams struct {
+	ApiToken sql.NullString `json:"api_token"`
+	ID       int64          `json:"id"`
+}
+
+func (q *Queries) SetUserAPIToken(ctx context.Context, arg SetUserAPITokenParams) error {
+	_, err := q.db.ExecContext(ctx, setUserAPIToken, arg.ApiToken, arg.ID)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET name       = ?,
     updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
 WHERE id = ?
-RETURNING id, name, username, password_hash, created_at, updated_at, created_by, updated_by
+RETURNING id, name, username, password_hash, api_token, created_at, updated_at, created_by, updated_by
 `
 
 type UpdateUserParams struct {
@@ -141,6 +181,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Name,
 		&i.Username,
 		&i.PasswordHash,
+		&i.ApiToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,

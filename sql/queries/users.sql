@@ -19,3 +19,9 @@ RETURNING *;
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = ?;
+
+-- name: GetUserByAPIToken :one
+SELECT * FROM users WHERE api_token = ? LIMIT 1;
+
+-- name: SetUserAPIToken :exec
+UPDATE users SET api_token = ? WHERE id = ?;

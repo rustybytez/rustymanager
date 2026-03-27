@@ -11,6 +11,7 @@ A self-hosted project manager with kanban, team chat, and web push notifications
 - **Real-time**: WebSockets (`nhooyr.io/websocket`)
 - **Push**: Web Push via VAPID (`webpush-go`)
 - **Auth**: Username + password (bcrypt), cookie-based sessions
+- **MCP**: Streamable HTTP MCP server at `/mcp` for AI client integration
 
 ## Features
 
@@ -19,6 +20,7 @@ A self-hosted project manager with kanban, team chat, and web push notifications
 - **Kanban** — slide-out drawer with To Do / In Progress / Done columns
 - **Project chat** — real-time WebSocket chat per project with message history
 - **Web push notifications** — offline push alerts for new chat messages (PWA-ready)
+- **MCP server** — manage kanban tickets via AI clients (e.g. Claude Code)
 
 ## Getting Started
 
@@ -83,6 +85,30 @@ make docker-run
 
 The Docker image uses a multi-stage build: a Bun stage compiles the CSS, then a Go stage builds the binary. Runs as a non-root user on Alpine.
 
+## MCP Server
+
+The server exposes an MCP endpoint at `/mcp` using the [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports).
+
+### Setup
+
+1. Go to **Settings** → **API Access** and generate a token.
+2. Add the server to Claude Code:
+   ```bash
+   claude mcp add rustymanager http://localhost:8080/mcp \
+     --transport http \
+     --header "Authorization: Bearer <your-token>"
+   ```
+
+### Available tools
+
+| Tool | Description |
+|---|---|
+| `list_projects` | List all projects (id, name, status) |
+| `list_kanban_items` | List kanban items for a project; optional status filter |
+| `create_kanban_item` | Create a new kanban item |
+| `update_kanban_status` | Move a kanban item to a new status |
+| `delete_kanban_item` | Delete a kanban item |
+
 ## Project layout
 
 ```
@@ -92,6 +118,7 @@ cmd/
 internal/
   db/             # sqlc-generated (do not edit)
   handler/        # Echo handlers
+  mcp/            # MCP server (tools, Bearer auth)
   middleware/     # auth, project middleware
   push/           # web push sender + handler
   store/          # DB wrapper + migrations

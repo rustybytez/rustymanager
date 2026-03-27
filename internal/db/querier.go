@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
@@ -20,6 +21,7 @@ type Querier interface {
 	GetKanbanItem(ctx context.Context, id int64) (KanbanItem, error)
 	GetProject(ctx context.Context, id int64) (Project, error)
 	GetUser(ctx context.Context, id int64) (User, error)
+	GetUserByAPIToken(ctx context.Context, apiToken sql.NullString) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	ListChatMessagesBefore(ctx context.Context, arg ListChatMessagesBeforeParams) ([]ListChatMessagesBeforeRow, error)
 	ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error)
@@ -27,6 +29,7 @@ type Querier interface {
 	ListProjects(ctx context.Context) ([]Project, error)
 	ListPushSubscriptions(ctx context.Context) ([]ListPushSubscriptionsRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	SetUserAPIToken(ctx context.Context, arg SetUserAPITokenParams) error
 	SoftDeleteDoneKanbanItems(ctx context.Context, projectID int64) error
 	UpdateKanbanItem(ctx context.Context, arg UpdateKanbanItemParams) (KanbanItem, error)
 	UpdateKanbanItemStatus(ctx context.Context, arg UpdateKanbanItemStatusParams) (KanbanItem, error)

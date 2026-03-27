@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     name          TEXT     NOT NULL,
     username      TEXT     NOT NULL DEFAULT '',
     password_hash TEXT     NOT NULL DEFAULT '',
+    api_token     TEXT,
     created_at    DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at    DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     created_by    INTEGER  REFERENCES users(id),
