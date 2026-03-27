@@ -62,8 +62,9 @@ func (h *Projects) Show(c echo.Context) error {
 	}
 	setProjectCookie(c, id)
 	return c.Render(http.StatusOK, "projects/show.html", map[string]any{
-		"Project": project,
-		"Items":   items,
+		"Project":   project,
+		"Items":     items,
+		"HasKanban": true,
 	})
 }
 

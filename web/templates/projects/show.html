@@ -1,180 +1,129 @@
 {{ define "content" }}
-<style>
-@media (max-width: 767px) {
-  #chat-messages {
-    /* fill from below the header/title to just above the input + bottom nav */
-    height: calc(100dvh - 240px) !important;
-    max-height: none !important;
-  }
-}
-</style>
-<div class="pb-20 md:pb-0">
-  <!-- Header (desktop only) -->
-  <div class="hidden md:flex justify-end items-center mb-2">
-    <div class="flex gap-2 shrink-0">
-      <a href="/projects/{{ .Project.ID }}/edit" class="btn btn-ghost btn-sm">Edit</a>
-      <a href="/projects" class="btn btn-ghost btn-sm">Back</a>
-    </div>
-  </div>
+<div class="h-[calc(100dvh-7rem)] flex flex-col">
+  <!-- Chat messages -->
+  <div id="chat-messages" class="bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-1 flex-1 mb-3"></div>
 
-  <!-- Kanban section -->
-  <div id="section-kanban">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 md:mt-6">
-
-      <!-- To Do -->
-      <div class="bg-base-200 rounded-xl p-4">
-        <div class="flex justify-between items-center mb-3">
-          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">To Do</h2>
-          <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-xs btn-ghost">+ Add</a>
-        </div>
-        <div class="flex flex-col gap-2">
-          {{ range .Items }}{{ if eq .Status "todo" }}
-          <div class="card bg-base-100 shadow-sm">
-            <div class="card-body p-3">
-              <p class="font-medium text-sm">{{ .Title }}</p>
-              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
-              <div class="flex gap-1 mt-2 justify-end">
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                  <input type="hidden" name="status" value="in_progress" />
-                  <button class="btn btn-xs btn-ghost">→ In Progress</button>
-                </form>
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-                </form>
-              </div>
-            </div>
-          </div>
-          {{ end }}{{ end }}
-        </div>
-      </div>
-
-      <!-- In Progress -->
-      <div class="bg-base-200 rounded-xl p-4">
-        <h2 class="font-semibold text-sm uppercase tracking-wide mb-3 text-base-content/60">In Progress</h2>
-        <div class="flex flex-col gap-2">
-          {{ range .Items }}{{ if eq .Status "in_progress" }}
-          <div class="card bg-base-100 shadow-sm">
-            <div class="card-body p-3">
-              <p class="font-medium text-sm">{{ .Title }}</p>
-              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
-              <div class="flex gap-1 mt-2 justify-end">
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                  <input type="hidden" name="status" value="todo" />
-                  <button class="btn btn-xs btn-ghost">← To Do</button>
-                </form>
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                  <input type="hidden" name="status" value="done" />
-                  <button class="btn btn-xs btn-ghost">→ Done</button>
-                </form>
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-                </form>
-              </div>
-            </div>
-          </div>
-          {{ end }}{{ end }}
-        </div>
-      </div>
-
-      <!-- Done -->
-      <div class="bg-base-200 rounded-xl p-4">
-        <div class="flex justify-between items-center mb-3">
-          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Done</h2>
-          <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/done/delete-all">
-            <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete all done items?')">Delete All</button>
-          </form>
-        </div>
-        <div class="flex flex-col gap-2">
-          {{ range .Items }}{{ if eq .Status "done" }}
-          <div class="card bg-base-100 shadow-sm border border-success/20">
-            <div class="card-body p-3">
-              <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
-              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
-              <div class="flex gap-1 mt-2 justify-end">
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                  <input type="hidden" name="status" value="in_progress" />
-                  <button class="btn btn-xs btn-ghost">← In Progress</button>
-                </form>
-                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-                </form>
-              </div>
-            </div>
-          </div>
-          {{ end }}{{ end }}
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Chat section -->
-  <div id="section-chat">
-    <div class="mt-4 md:mt-8">
-      <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-lg font-semibold">Project Chat</h2>
-        <span id="chat-reconnect" class="ml-auto text-xs text-base-content/40 hidden">↺ Reconnecting…</span>
-      </div>
-
-      <div id="chat-messages" class="bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-1 mb-3" style="height: calc(100dvh - 300px); max-height: 400px;"></div>
-
-      <div class="join w-full">
-        <input id="chat-input" type="text" placeholder="Type a message…" class="input input-sm join-item flex-1 text-base" />
-        <button id="chat-send" class="btn btn-primary btn-sm join-item">Send</button>
-      </div>
-    </div>
+  <!-- Chat input -->
+  <div class="join w-full shrink-0">
+    <input id="chat-input" type="text" placeholder="Type a message…" class="input input-sm join-item flex-1 text-base" />
+    <button id="chat-send" class="btn btn-primary btn-sm join-item">Send</button>
   </div>
 </div>
 
-<!-- Bottom nav (mobile only) -->
-<div class="btm-nav md:hidden z-20 border-t border-base-300 bg-base-100">
-  <button data-tab="kanban" onclick="switchTab('kanban')">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-    </svg>
-    <span class="btm-nav-label">Kanban</span>
-  </button>
-  <button data-tab="chat" onclick="switchTab('chat')" class="active">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-    </svg>
-    <span class="btm-nav-label">Chat</span>
-  </button>
+<!-- Kanban backdrop -->
+<div id="kanban-backdrop" onclick="closeKanban()" class="fixed inset-0 bg-black/40 z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<!-- Kanban drawer (slides in from right) -->
+<div id="kanban-drawer" class="fixed top-0 right-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-40 flex flex-col translate-x-full transition-transform duration-300 ease-in-out">
+  <div class="flex items-center gap-2 px-4 pt-6 pb-3 border-b border-base-300 shrink-0">
+    <h2 class="font-semibold text-lg flex-1">Kanban</h2>
+    <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add</a>
+    <button onclick="closeKanban()" class="btn btn-ghost btn-sm btn-square text-base-content/60">✕</button>
+  </div>
+  <div class="overflow-y-auto flex-1 p-4 flex flex-col gap-4">
+
+    <!-- To Do -->
+    <div class="bg-base-200 rounded-xl p-4">
+      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60 mb-3">To Do</h3>
+      <div class="flex flex-col gap-2">
+        {{ range .Items }}{{ if eq .Status "todo" }}
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body p-3">
+            <p class="font-medium text-sm">{{ .Title }}</p>
+            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+            <div class="flex gap-1 mt-2 justify-end">
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="in_progress" />
+                <button class="btn btn-xs btn-ghost">→ In Progress</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{ end }}{{ end }}
+      </div>
+    </div>
+
+    <!-- In Progress -->
+    <div class="bg-base-200 rounded-xl p-4">
+      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60 mb-3">In Progress</h3>
+      <div class="flex flex-col gap-2">
+        {{ range .Items }}{{ if eq .Status "in_progress" }}
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body p-3">
+            <p class="font-medium text-sm">{{ .Title }}</p>
+            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+            <div class="flex gap-1 mt-2 justify-end">
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="todo" />
+                <button class="btn btn-xs btn-ghost">← To Do</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="done" />
+                <button class="btn btn-xs btn-ghost">→ Done</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{ end }}{{ end }}
+      </div>
+    </div>
+
+    <!-- Done -->
+    <div class="bg-base-200 rounded-xl p-4">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Done</h3>
+        <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/done/delete-all">
+          <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete all done items?')">Delete All</button>
+        </form>
+      </div>
+      <div class="flex flex-col gap-2">
+        {{ range .Items }}{{ if eq .Status "done" }}
+        <div class="card bg-base-100 shadow-sm border border-success/20">
+          <div class="card-body p-3">
+            <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
+            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
+            <div class="flex gap-1 mt-2 justify-end">
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                <input type="hidden" name="status" value="in_progress" />
+                <button class="btn btn-xs btn-ghost">← In Progress</button>
+              </form>
+              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{ end }}{{ end }}
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script>
-// Tab switching (mobile only)
-var TABS = ['kanban', 'chat'];
-
-function isMobile() { return window.innerWidth < 768; }
-
-function switchTab(name) {
-  TABS.forEach(function(tab) {
-    var el = document.getElementById('section-' + tab);
-    if (el) el.style.display = (tab === name) ? '' : 'none';
-  });
-  document.querySelectorAll('.btm-nav button[data-tab]').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.tab === name);
-  });
-  if (name === 'chat') {
-    var box = document.getElementById('chat-messages');
-    if (box) box.scrollTop = box.scrollHeight;
-  }
+function openKanban() {
+  document.getElementById('kanban-drawer').classList.remove('translate-x-full');
+  var bd = document.getElementById('kanban-backdrop');
+  bd.classList.remove('opacity-0', 'pointer-events-none');
+  document.body.style.overflow = 'hidden';
 }
 
-function initTabs() {
-  if (isMobile()) {
-    switchTab('chat');
-  } else {
-    TABS.forEach(function(tab) {
-      var el = document.getElementById('section-' + tab);
-      if (el) el.style.display = '';
-    });
-  }
+function closeKanban() {
+  document.getElementById('kanban-drawer').classList.add('translate-x-full');
+  var bd = document.getElementById('kanban-backdrop');
+  bd.classList.add('opacity-0', 'pointer-events-none');
+  document.body.style.overflow = '';
 }
 
-initTabs();
-window.addEventListener('resize', initTabs);
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeKanban();
+});
 
 (function () {
   const projectID = {{ .Project.ID }};
@@ -183,23 +132,22 @@ window.addEventListener('resize', initTabs);
   var ws;
   var reconnectTimer;
 
+  function setConnected(ok) {
+    var input = document.getElementById('chat-input');
+    var send = document.getElementById('chat-send');
+    input.disabled = !ok;
+    send.disabled = !ok;
+    input.placeholder = ok ? 'Type a message…' : '↺ Reconnecting…';
+  }
+
   function connectWS() {
     clearTimeout(reconnectTimer);
     ws = new WebSocket(`${proto}://${location.host}/projects/${projectID}/ws`);
-    document.getElementById('chat-reconnect').classList.add('hidden');
+    setConnected(true);
 
-    ws.onopen = function () {
-      document.getElementById('chat-reconnect').classList.add('hidden');
-    };
-
-    ws.onclose = function () {
-      document.getElementById('chat-reconnect').classList.remove('hidden');
-      reconnectTimer = setTimeout(connectWS, 3000);
-    };
-
-    ws.onerror = function () {
-      document.getElementById('chat-reconnect').classList.remove('hidden');
-    };
+    ws.onopen = function () { setConnected(true); };
+    ws.onclose = function () { setConnected(false); reconnectTimer = setTimeout(connectWS, 3000); };
+    ws.onerror = function () { setConnected(false); };
 
     ws.onmessage = function (e) {
       const msg = JSON.parse(e.data);
@@ -235,7 +183,6 @@ window.addEventListener('resize', initTabs);
     return output;
   }
 
-
   var EXPIRY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
   function isExpiringSoon(sub) {
@@ -251,7 +198,6 @@ window.addEventListener('resize', initTabs);
     }).then(function (res) {
       if (!res.ok) throw new Error('server returned ' + res.status);
       pushActive = true;
-
       console.log('[push] active:', sub.endpoint);
     });
   }
@@ -266,7 +212,6 @@ window.addEventListener('resize', initTabs);
 
   function subscribeToPush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-
       return;
     }
 

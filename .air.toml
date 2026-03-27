@@ -2,10 +2,10 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "go build -o tmp/server ./cmd/server"
+  cmd = "make css && go build -o tmp/server ./cmd/server"
   bin = "tmp/server"
   include_ext = ["go", "html", "css", "sql"]
-  exclude_dir = ["tmp", "bin", "node_modules", "internal/db"]
+  exclude_dir = ["tmp", "bin", "node_modules", "internal/db", "web/static/css"]
   delay = 200
 
 [log]
