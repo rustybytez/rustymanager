@@ -6,8 +6,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 
 	"rustymanager/internal/db"
 	authmw "rustymanager/internal/middleware"
@@ -24,6 +26,38 @@ func NewSettings(s *store.Store) *Settings {
 
 func (h *Settings) Index(c echo.Context) error {
 	return c.Render(http.StatusOK, "settings/index.html", map[string]any{})
+}
+
+func (h *Settings) Admin(c echo.Context) error {
+	users, err := h.store.Queries().ListUsers(context.Background())
+	if err != nil {
+		return err
+	}
+	return c.Render(http.StatusOK, "settings/admin.html", map[string]any{
+		"Users": users,
+	})
+}
+
+func (h *Settings) ResetPassword(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	password := c.FormValue("password")
+	if password == "" {
+		return echo.ErrBadRequest
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	if err := h.store.Queries().UpdateUserPassword(context.Background(), db.UpdateUserPasswordParams{
+		PasswordHash: string(hash),
+		ID:           id,
+	}); err != nil {
+		return err
+	}
+	return c.Redirect(http.StatusSeeOther, "/settings/admin")
 }
 
 func (h *Settings) GenerateAPIToken(c echo.Context) error {

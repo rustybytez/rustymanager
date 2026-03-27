@@ -131,6 +131,8 @@ func newApp(dsn string) (*echo.Echo, error) {
 
 	settings := handler.NewSettings(s)
 	p.GET("/settings", settings.Index)
+	p.GET("/settings/admin", settings.Admin)
+	p.POST("/settings/admin/users/:id/reset-password", settings.ResetPassword)
 	p.POST("/settings/api-token", settings.GenerateAPIToken)
 	p.POST("/settings/api-token/revoke", settings.RevokeAPIToken)
 

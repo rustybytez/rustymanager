@@ -36,6 +36,7 @@ type Querier interface {
 	UpdateKanbanItemStatus(ctx context.Context, arg UpdateKanbanItemStatusParams) (KanbanItem, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpsertPushSubscription(ctx context.Context, arg UpsertPushSubscriptionParams) error
 }
 

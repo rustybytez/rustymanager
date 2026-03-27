@@ -25,3 +25,6 @@ SELECT * FROM users WHERE api_token = ? LIMIT 1;
 
 -- name: SetUserAPIToken :exec
 UPDATE users SET api_token = ? WHERE id = ?;
+
+-- name: UpdateUserPassword :exec
+UPDATE users SET password_hash = ? WHERE id = ?;

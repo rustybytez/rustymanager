@@ -1,0 +1,75 @@
+{{ define "content" }}
+<div class="max-w-2xl mx-auto pb-20 md:pb-0">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold">Admin Settings</h1>
+      <p class="text-sm text-base-content/50 mt-1">System administration</p>
+    </div>
+    <a href="/settings" class="btn btn-ghost btn-sm">← Settings</a>
+  </div>
+
+  <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <div class="card-body gap-4">
+      <h2 class="card-title text-base">Users</h2>
+      {{ if .Users }}
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Username</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Users }}
+            <tr>
+              <td class="text-base-content/50">{{ .ID }}</td>
+              <td class="font-medium">{{ .Name }}</td>
+              <td class="text-sm text-base-content/50">{{ .Username }}</td>
+              <td class="text-sm text-base-content/50">{{ .CreatedAt.Format "2006-01-02" }}</td>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-xs"
+                  onclick="openResetModal({{ .ID }}, '{{ .Name }}')">Reset password</button>
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      </div>
+      {{ else }}
+      <p class="text-sm text-base-content/50">No users found.</p>
+      {{ end }}
+    </div>
+  </div>
+</div>
+
+<!-- Reset password modal -->
+<dialog id="reset-modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">Reset password</h3>
+    <p class="text-sm text-base-content/60 mb-4">Set a new password for <strong id="reset-user-name"></strong>.</p>
+    <form id="reset-form" method="POST">
+      <div class="form-control mb-4">
+        <input type="password" name="password" placeholder="New password"
+          class="input input-bordered w-full" required minlength="8" />
+      </div>
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('reset-modal').close()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Reset password</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script>
+function openResetModal(id, name) {
+  document.getElementById('reset-user-name').textContent = name;
+  document.getElementById('reset-form').action = '/settings/admin/users/' + id + '/reset-password';
+  document.getElementById('reset-modal').showModal();
+}
+</script>
+{{ end }}
