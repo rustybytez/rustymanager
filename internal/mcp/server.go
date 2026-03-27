@@ -78,6 +78,10 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 			if projectID == 0 {
 				return mcp.NewToolResultError("project_id is required"), nil
 			}
+			project, err := s.Queries().GetProject(ctx, projectID)
+			if err != nil {
+				return mcp.NewToolResultError("project not found"), nil
+			}
 			items, err := s.Queries().ListKanbanItemsByProject(ctx, projectID)
 			if err != nil {
 				return mcp.NewToolResultError(err.Error()), nil
@@ -87,6 +91,7 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 				ID           int64  `json:"id"`
 				Title        string `json:"title"`
 				Status       string `json:"status"`
+				ProjectName  string `json:"project_name"`
 				AssigneeName string `json:"assignee_name,omitempty"`
 			}
 			var out []itemSummary
@@ -94,11 +99,11 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 				if filterStatus != "" && item.Status != filterStatus {
 					continue
 				}
-				s := itemSummary{ID: item.ID, Title: item.Title, Status: item.Status}
+				si := itemSummary{ID: item.ID, Title: item.Title, Status: item.Status, ProjectName: project.Name}
 				if item.AssigneeName.Valid {
-					s.AssigneeName = item.AssigneeName.String
+					si.AssigneeName = item.AssigneeName.String
 				}
-				out = append(out, s)
+				out = append(out, si)
 			}
 			if out == nil {
 				out = []itemSummary{}
@@ -127,6 +132,10 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 			if status != "todo" && status != "in_progress" && status != "done" {
 				return mcp.NewToolResultError("status must be todo, in_progress, or done"), nil
 			}
+			project, err := s.Queries().GetProject(ctx, projectID)
+			if err != nil {
+				return mcp.NewToolResultError("project not found"), nil
+			}
 			item, err := s.Queries().CreateKanbanItem(ctx, db.CreateKanbanItemParams{
 				ProjectID: projectID,
 				Title:     title,
@@ -135,7 +144,7 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 			if err != nil {
 				return mcp.NewToolResultError(err.Error()), nil
 			}
-			return jsonResult(map[string]any{"id": item.ID, "title": item.Title, "status": item.Status})
+			return jsonResult(map[string]any{"id": item.ID, "title": item.Title, "status": item.Status, "project_name": project.Name})
 		},
 	)
 
@@ -163,6 +172,10 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 			if item.ProjectID != projectID {
 				return mcp.NewToolResultError("item does not belong to the specified project"), nil
 			}
+			project, err := s.Queries().GetProject(ctx, projectID)
+			if err != nil {
+				return mcp.NewToolResultError("project not found"), nil
+			}
 			updated, err := s.Queries().UpdateKanbanItemStatus(ctx, db.UpdateKanbanItemStatusParams{
 				ID:     itemID,
 				Status: status,
@@ -170,7 +183,7 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 			if err != nil {
 				return mcp.NewToolResultError(err.Error()), nil
 			}
-			return jsonResult(map[string]any{"id": updated.ID, "title": updated.Title, "status": updated.Status})
+			return jsonResult(map[string]any{"id": updated.ID, "title": updated.Title, "status": updated.Status, "project_name": project.Name})
 		},
 	)
 
@@ -193,10 +206,14 @@ func registerTools(srv *mcpserver.MCPServer, s *store.Store) {
 			if item.ProjectID != projectID {
 				return mcp.NewToolResultError("item does not belong to the specified project"), nil
 			}
+			project, err := s.Queries().GetProject(ctx, projectID)
+			if err != nil {
+				return mcp.NewToolResultError("project not found"), nil
+			}
 			if err := s.Queries().DeleteKanbanItem(ctx, itemID); err != nil {
 				return mcp.NewToolResultError(err.Error()), nil
 			}
-			return mcp.NewToolResultText(fmt.Sprintf("item %d deleted", itemID)), nil
+			return mcp.NewToolResultText(fmt.Sprintf("item %d deleted from project %q", itemID, project.Name)), nil
 		},
 	)
 }

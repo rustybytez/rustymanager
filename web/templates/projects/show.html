@@ -416,7 +416,7 @@ document.addEventListener('keydown', function(e) {
 
   window.startCall = function() {
     if (currentRoomName) { openCallPanel(); return; }
-    var roomName = JAAS_APP_ID + '/rustymanager-' + projectID + '-' + Date.now();
+    var roomName = JAAS_APP_ID + '/rustymanager-' + projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     ws.send(JSON.stringify({ type: 'call_start', user_id: currentUserID, room_name: roomName }));
     joinCall(roomName);
   };
@@ -428,6 +428,7 @@ document.addEventListener('keydown', function(e) {
       .then(function(r) { return r.json(); })
       .then(function(data) {
         loadJitsiScript(function() {
+          openCallPanel();
           jitsiAPI = new window.JitsiMeetExternalAPI('8x8.vc', {
             roomName: roomName,
             jwt: data.token,
@@ -436,10 +437,8 @@ document.addEventListener('keydown', function(e) {
             height: '100%',
           });
           jitsiAPI.addEventListeners({
-            videoConferenceJoined: function() { openCallPanel(); },
             readyToClose: function() { leaveCall(false); },
           });
-          openCallPanel();
         });
       })
       .catch(function(err) {
@@ -450,15 +449,15 @@ document.addEventListener('keydown', function(e) {
 
   // skipNotify=true when leaveCall is triggered by receiving a call_end event
   window.leaveCall = function(skipNotify) {
-    if (jitsiAPI) {
-      jitsiAPI.dispose();
-      jitsiAPI = null;
-    }
-    if (!skipNotify && currentRoomName) {
-      ws.send(JSON.stringify({ type: 'call_end', user_id: currentUserID, room_name: currentRoomName }));
+    var api = jitsiAPI;
+    var roomName = currentRoomName;
+    jitsiAPI = null;
+    currentRoomName = null;
+    if (api) api.dispose();
+    if (!skipNotify && roomName) {
+      ws.send(JSON.stringify({ type: 'call_end', user_id: currentUserID, room_name: roomName }));
     }
     document.getElementById('jitsi-container').innerHTML = '';
-    currentRoomName = null;
     closeCallPanel();
   };
 
@@ -504,12 +503,14 @@ document.addEventListener('keydown', function(e) {
     if (isStart) {
       joinBtn = ' <button class="btn btn-xs btn-success ml-2" onclick="joinCall(\'' + msg.room_name + '\')">Join</button>';
     } else {
-      // Find the matching call_start element to get start time and remove its Join button.
-      var startEl = document.querySelector('[data-call-type="call_start"][data-room-name="' + msg.room_name + '"]');
+      // Find the most recent matching call_start element to get start time and remove its Join button.
+      var startEls = document.querySelectorAll('[data-call-type="call_start"][data-room-name="' + msg.room_name + '"]');
+      var startEl = startEls.length > 0 ? startEls[startEls.length - 1] : null;
       if (startEl && startEl.dataset.createdAt) {
         var startMs = new Date(startEl.dataset.createdAt).getTime();
         var endMs = new Date(msg.created_at).getTime();
         if (endMs > startMs) durationLabel = ' · ' + formatDuration(endMs - startMs);
+        delete startEl.dataset.callType;
         var joinBtnEl = startEl.querySelector('button');
         if (joinBtnEl) joinBtnEl.remove();
       }
