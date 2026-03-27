@@ -11,6 +11,9 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - JAAS_APP_ID=${JAAS_APP_ID:-}
+      - JAAS_KEY_ID=${JAAS_KEY_ID:-}
+      - JAAS_PRIVATE_KEY_BASE64=${JAAS_PRIVATE_KEY_BASE64:-}
     volumes:
       - db_data:/data
     user: appuser
