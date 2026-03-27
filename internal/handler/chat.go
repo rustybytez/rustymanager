@@ -16,9 +16,10 @@ import (
 	"rustymanager/internal/db"
 )
 
-// PushSender sends a push notification to all subscribed browsers.
+// PushSender sends a push notification to all subscribed browsers,
+// excluding the user identified by excludeUserID.
 type PushSender interface {
-	Send(ctx context.Context, title, body, url string)
+	Send(ctx context.Context, title, body, url string, excludeUserID int64)
 }
 
 // ChatChannel manages WebSocket clients grouped by project.
@@ -264,10 +265,10 @@ func (ch *ChatChannel) handleChatMessage(ctx context.Context, c *chatClient, in 
 		if err == nil {
 			projectName = project.Name
 		}
-		title := "New message in " + projectName
+		title := "[rustymanager] " + projectName
 		body := userName + ": " + out.Content
 		url := fmt.Sprintf("/projects/%d", c.projectID)
-		go ch.push.Send(context.Background(), title, body, url)
+		go ch.push.Send(context.Background(), title, body, url, in.UserID)
 	}
 }
 

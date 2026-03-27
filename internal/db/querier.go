@@ -28,7 +28,7 @@ type Querier interface {
 	ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error)
 	ListKanbanItemsByProject(ctx context.Context, projectID int64) ([]ListKanbanItemsByProjectRow, error)
 	ListProjects(ctx context.Context) ([]Project, error)
-	ListPushSubscriptions(ctx context.Context) ([]ListPushSubscriptionsRow, error)
+	ListPushSubscriptionsExcludingUser(ctx context.Context, userID sql.NullInt64) ([]ListPushSubscriptionsExcludingUserRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
 	SetUserAPIToken(ctx context.Context, arg SetUserAPITokenParams) error
 	SoftDeleteDoneKanbanItems(ctx context.Context, projectID int64) error

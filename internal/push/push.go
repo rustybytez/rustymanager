@@ -2,6 +2,7 @@ package push
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
@@ -30,10 +31,11 @@ type payload struct {
 	URL   string `json:"url"`
 }
 
-// Send fans out a push notification to all stored subscriptions.
+// Send fans out a push notification to all stored subscriptions,
+// skipping the subscription belonging to excludeUserID (the sender).
 // Stale subscriptions (410 Gone) are removed automatically.
-func (s *Sender) Send(ctx context.Context, title, body, url string) {
-	subs, err := s.queries.ListPushSubscriptions(ctx)
+func (s *Sender) Send(ctx context.Context, title, body, url string, excludeUserID int64) {
+	subs, err := s.queries.ListPushSubscriptionsExcludingUser(ctx, sql.NullInt64{Int64: excludeUserID, Valid: excludeUserID > 0})
 	if err != nil {
 		log.Printf("push: list subscriptions: %v", err)
 		return

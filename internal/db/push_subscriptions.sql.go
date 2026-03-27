@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const deletePushSubscription = `-- name: DeletePushSubscription :exec
@@ -18,25 +19,26 @@ func (q *Queries) DeletePushSubscription(ctx context.Context, endpoint string) e
 	return err
 }
 
-const listPushSubscriptions = `-- name: ListPushSubscriptions :many
+const listPushSubscriptionsExcludingUser = `-- name: ListPushSubscriptionsExcludingUser :many
 SELECT endpoint, p256dh, auth FROM push_subscriptions
+WHERE user_id IS NULL OR user_id != ?
 `
 
-type ListPushSubscriptionsRow struct {
+type ListPushSubscriptionsExcludingUserRow struct {
 	Endpoint string `json:"endpoint"`
 	P256dh   string `json:"p256dh"`
 	Auth     string `json:"auth"`
 }
 
-func (q *Queries) ListPushSubscriptions(ctx context.Context) ([]ListPushSubscriptionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listPushSubscriptions)
+func (q *Queries) ListPushSubscriptionsExcludingUser(ctx context.Context, userID sql.NullInt64) ([]ListPushSubscriptionsExcludingUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPushSubscriptionsExcludingUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListPushSubscriptionsRow
+	var items []ListPushSubscriptionsExcludingUserRow
 	for rows.Next() {
-		var i ListPushSubscriptionsRow
+		var i ListPushSubscriptionsExcludingUserRow
 		if err := rows.Scan(&i.Endpoint, &i.P256dh, &i.Auth); err != nil {
 			return nil, err
 		}
@@ -52,18 +54,24 @@ func (q *Queries) ListPushSubscriptions(ctx context.Context) ([]ListPushSubscrip
 }
 
 const upsertPushSubscription = `-- name: UpsertPushSubscription :exec
-INSERT INTO push_subscriptions (endpoint, p256dh, auth)
-VALUES (?, ?, ?)
-ON CONFLICT(endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth
+INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_id)
+VALUES (?, ?, ?, ?)
+ON CONFLICT(endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth, user_id = excluded.user_id
 `
 
 type UpsertPushSubscriptionParams struct {
-	Endpoint string `json:"endpoint"`
-	P256dh   string `json:"p256dh"`
-	Auth     string `json:"auth"`
+	Endpoint string        `json:"endpoint"`
+	P256dh   string        `json:"p256dh"`
+	Auth     string        `json:"auth"`
+	UserID   sql.NullInt64 `json:"user_id"`
 }
 
 func (q *Queries) UpsertPushSubscription(ctx context.Context, arg UpsertPushSubscriptionParams) error {
-	_, err := q.db.ExecContext(ctx, upsertPushSubscription, arg.Endpoint, arg.P256dh, arg.Auth)
+	_, err := q.db.ExecContext(ctx, upsertPushSubscription,
+		arg.Endpoint,
+		arg.P256dh,
+		arg.Auth,
+		arg.UserID,
+	)
 	return err
 }

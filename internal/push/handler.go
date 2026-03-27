@@ -1,11 +1,13 @@
 package push
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 
 	"rustymanager/internal/db"
+	authmw "rustymanager/internal/middleware"
 )
 
 // Handler exposes HTTP endpoints for push subscription management.
@@ -40,10 +42,15 @@ func (h *Handler) Subscribe(c echo.Context) error {
 	if req.Endpoint == "" || req.Keys.P256dh == "" || req.Keys.Auth == "" {
 		return echo.ErrBadRequest
 	}
+	var userID sql.NullInt64
+	if user, ok := c.Get(authmw.CurrentUserKey).(db.User); ok {
+		userID = sql.NullInt64{Int64: user.ID, Valid: true}
+	}
 	if err := h.queries.UpsertPushSubscription(c.Request().Context(), db.UpsertPushSubscriptionParams{
 		Endpoint: req.Endpoint,
 		P256dh:   req.Keys.P256dh,
 		Auth:     req.Keys.Auth,
+		UserID:   userID,
 	}); err != nil {
 		return err
 	}

@@ -45,11 +45,12 @@ type Project struct {
 }
 
 type PushSubscription struct {
-	ID        int64     `json:"id"`
-	Endpoint  string    `json:"endpoint"`
-	P256dh    string    `json:"p256dh"`
-	Auth      string    `json:"auth"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64         `json:"id"`
+	Endpoint  string        `json:"endpoint"`
+	P256dh    string        `json:"p256dh"`
+	Auth      string        `json:"auth"`
+	UserID    sql.NullInt64 `json:"user_id"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type User struct {
