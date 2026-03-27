@@ -51,10 +51,12 @@ type PushSubscription struct {
 }
 
 type User struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt time.Time     `json:"updated_at"`
-	CreatedBy sql.NullInt64 `json:"created_by"`
-	UpdatedBy sql.NullInt64 `json:"updated_by"`
+	ID           int64         `json:"id"`
+	Name         string        `json:"name"`
+	Username     string        `json:"username"`
+	PasswordHash string        `json:"password_hash"`
+	CreatedAt    time.Time     `json:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at"`
+	CreatedBy    sql.NullInt64 `json:"created_by"`
+	UpdatedBy    sql.NullInt64 `json:"updated_by"`
 }

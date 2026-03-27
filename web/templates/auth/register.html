@@ -1,0 +1,36 @@
+{{ define "content" }}
+<div class="min-h-[70vh] flex items-center justify-center">
+  <div class="card w-full max-w-sm bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-2xl mb-2">Create Account</h2>
+      {{ if .Error }}
+      <div class="alert alert-error mb-2">
+        <span>{{ .Error }}</span>
+      </div>
+      {{ end }}
+      <form method="POST" action="/register" class="flex flex-col gap-2">
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Display Name</legend>
+          <input type="text" name="name" class="input w-full" autofocus required />
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Username</legend>
+          <input type="text" name="username" class="input w-full" required autocomplete="username" />
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Password</legend>
+          <input type="password" name="password" class="input w-full" required autocomplete="new-password" />
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Auth Token</legend>
+          <input type="password" name="auth_token" class="input w-full" required />
+        </fieldset>
+        <button type="submit" class="btn btn-primary w-full mt-2">Create Account</button>
+      </form>
+      <p class="text-sm text-center text-base-content/50 mt-2">
+        Already have an account? <a href="/login" class="link">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+{{ end }}

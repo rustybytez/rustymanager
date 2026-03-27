@@ -105,26 +105,17 @@ func newApp(dsn string) (*echo.Echo, error) {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	a := handler.NewAuth()
+	a := handler.NewAuth(s)
 	e.GET("/login", a.LoginPage)
 	e.POST("/login", a.Login)
+	e.GET("/register", a.RegisterPage)
+	e.POST("/register", a.Register)
 
-	// Auth-protected group (no user selection required)
+	// Auth-protected group
 	p := e.Group("")
-	p.Use(authmw.RequireAuth)
+	p.Use(authmw.RequireAuth(s))
+	p.Use(authmw.LoadProject(s))
 	p.POST("/logout", a.Logout)
-
-	u := handler.NewUsers(s)
-	p.GET("/select-user", u.SelectPage)
-	p.POST("/select-user", u.Select)
-	p.POST("/switch-user", u.SwitchUser)
-	p.GET("/users/new", u.New)
-	p.POST("/users", u.Create)
-
-	// Auth + user-selection required
-	r := p.Group("")
-	r.Use(authmw.RequireUser(s))
-	r.Use(authmw.LoadProject(s))
 
 	vapidPub, vapidPriv := loadVAPIDKeys()
 	vapidSubscriber := os.Getenv("VAPID_SUBSCRIBER")
@@ -133,33 +124,33 @@ func newApp(dsn string) (*echo.Echo, error) {
 	}
 	pushSender := push.NewSender(queries, vapidPub, vapidPriv, vapidSubscriber)
 	pushHandler := push.NewHandler(queries, vapidPub)
-	r.GET("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
-	r.POST("/push/subscribe", pushHandler.Subscribe)
-	r.DELETE("/push/subscribe", pushHandler.Unsubscribe)
+	p.GET("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
+	p.POST("/push/subscribe", pushHandler.Subscribe)
+	p.DELETE("/push/subscribe", pushHandler.Unsubscribe)
 
-	r.GET("/settings", handler.Settings)
+	p.GET("/settings", handler.Settings)
 
 	h := handler.NewProjects(s)
-	// Routes that do NOT require a project selection
-	r.GET("/select-project", h.SelectProjectPage)
-	r.POST("/select-project", h.SelectProject)
-	r.POST("/switch-project", h.SwitchProject)
-	r.GET("/projects", h.Index)
-	r.GET("/projects/new", h.New)
-	r.POST("/projects", h.Create)
+	p.GET("/select-project", h.SelectProjectPage)
+	p.POST("/select-project", h.SelectProject)
+	p.POST("/switch-project", h.SwitchProject)
+	p.GET("/projects", h.Index)
+	p.GET("/projects/new", h.New)
+	p.POST("/projects", h.Create)
 
-	r.GET("/users", u.Index)
-	r.GET("/users/:id/edit", u.Edit)
-	r.POST("/users/:id", u.Update)
-	r.POST("/users/:id/delete", u.Delete)
+	u := handler.NewUsers(s)
+	p.GET("/users", u.Index)
+	p.GET("/users/:id/edit", u.Edit)
+	p.POST("/users/:id", u.Update)
+	p.POST("/users/:id/delete", u.Delete)
 
 	// Routes that require a project to be selected
-	rp := r.Group("")
+	rp := p.Group("")
 	rp.Use(authmw.RequireProject())
 
 	rp.GET("/", func(c echo.Context) error {
-		p := c.Get(authmw.CurrentProjectKey).(db.Project)
-		return c.Redirect(http.StatusFound, fmt.Sprintf("/projects/%d", p.ID))
+		proj := c.Get(authmw.CurrentProjectKey).(db.Project)
+		return c.Redirect(http.StatusFound, fmt.Sprintf("/projects/%d", proj.ID))
 	})
 	rp.GET("/projects/:id", h.Show)
 	rp.GET("/projects/:id/edit", h.Edit)
@@ -175,11 +166,11 @@ func newApp(dsn string) (*echo.Echo, error) {
 	rp.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
 
 	chat := handler.NewChatChannel(queries, pushSender)
-	r.GET("/projects/:id/ws", chat.HandleWS)
-	r.GET("/projects/:id/chat/history", chat.HandleHistory)
+	p.GET("/projects/:id/ws", chat.HandleWS)
+	p.GET("/projects/:id/chat/history", chat.HandleHistory)
 
 	commits := handler.NewCommits(s)
-	r.GET("/projects/:id/commits", commits.List)
+	p.GET("/projects/:id/commits", commits.List)
 
 	return e, nil
 }

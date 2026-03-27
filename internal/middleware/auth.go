@@ -1,20 +1,37 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
-	"os"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
+
+	"rustymanager/internal/store"
 )
 
-const CookieName = "auth_token"
+const (
+	CookieName     = "user_id"
+	CurrentUserKey = "current_user"
+)
 
-func RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		cookie, err := c.Cookie(CookieName)
-		if err != nil || cookie.Value != os.Getenv("AUTH_TOKEN") {
-			return c.Redirect(http.StatusSeeOther, "/login")
+func RequireAuth(s *store.Store) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			cookie, err := c.Cookie(CookieName)
+			if err != nil {
+				return c.Redirect(http.StatusSeeOther, "/login")
+			}
+			userID, err := strconv.ParseInt(cookie.Value, 10, 64)
+			if err != nil {
+				return c.Redirect(http.StatusSeeOther, "/login")
+			}
+			user, err := s.Queries().GetUser(context.Background(), userID)
+			if err != nil {
+				return c.Redirect(http.StatusSeeOther, "/login")
+			}
+			c.Set(CurrentUserKey, user)
+			return next(c)
 		}
-		return next(c)
 	}
 }

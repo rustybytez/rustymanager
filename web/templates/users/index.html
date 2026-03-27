@@ -2,7 +2,7 @@
 <div class="max-w-2xl mx-auto">
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Users</h1>
-    <a href="/users/new" class="btn btn-primary btn-sm">New User</a>
+    <a href="/register" class="btn btn-primary btn-sm">New User</a>
   </div>
   {{ if .Users }}
   <div class="overflow-x-auto">
@@ -33,7 +33,7 @@
     </table>
   </div>
   {{ else }}
-  <p class="text-base-content/50">No users yet. <a href="/users/new" class="link">Create one.</a></p>
+  <p class="text-base-content/50">No users yet. <a href="/register" class="link">Create one.</a></p>
   {{ end }}
 </div>
 {{ end }}
