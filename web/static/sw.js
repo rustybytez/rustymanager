@@ -10,9 +10,11 @@ self.addEventListener('push', function (e) {
   var title = data.title || 'New message';
   var options = {
     body: data.body || '',
+    icon: '/static/icon-192.png',
     data: { url: data.url || '/' },
     tag: 'chat-' + (data.url || 'default'),
     renotify: true,
+    vibrate: [200, 100, 200],
   };
   var targetUrl = data.url || '/';
   e.waitUntil(
@@ -22,6 +24,10 @@ self.addEventListener('push', function (e) {
           return; // user is already looking at the page
         }
       }
+      // Increment app badge on PWA icon
+      if (self.navigator.setAppBadge) {
+        self.navigator.setAppBadge();
+      }
       return self.registration.showNotification(title, options);
     })
   );
@@ -29,6 +35,10 @@ self.addEventListener('push', function (e) {
 
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
+  // Clear app badge when user taps notification
+  if (self.navigator.clearAppBadge) {
+    self.navigator.clearAppBadge();
+  }
   var url = e.notification.data && e.notification.data.url ? e.notification.data.url : '/';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {

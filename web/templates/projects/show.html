@@ -364,9 +364,17 @@ document.addEventListener('keydown', function(e) {
     if (pushActive) return;
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const body = msg.content.length > 100 ? msg.content.slice(0, 100) + '\u2026' : msg.content;
-    const n = new Notification('New message in ' + projectName, { body: msg.user_name + ': ' + body });
+    const n = new Notification('New message in ' + projectName, { body: msg.user_name + ': ' + body, icon: '/static/icon-192.png' });
+    if (navigator.setAppBadge) navigator.setAppBadge();
     setTimeout(function () { n.close(); }, 4000);
   }
+
+  // Clear app badge when user returns to the page
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && navigator.clearAppBadge) {
+      navigator.clearAppBadge();
+    }
+  });
 
   var oldestMessageID = null;
   var loadingHistory = false;
