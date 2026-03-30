@@ -362,6 +362,10 @@ document.addEventListener('keydown', function(e) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  function linkify(s) {
+    return escapeHTML(s).replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline opacity-80 hover:opacity-100 break-all">$1</a>');
+  }
+
   function appendMessage(userId, userName, content, createdAt, id) {
     const box = document.getElementById('chat-messages');
     const el = makeMsgEl(userId, userName, content, createdAt, id);
@@ -382,7 +386,7 @@ document.addEventListener('keydown', function(e) {
       + '</div>'
       + '<div class="max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-snug whitespace-pre-wrap break-words '
         + (isMine ? 'bg-primary text-primary-content rounded-br-sm' : 'bg-base-100 text-base-content rounded-bl-sm')
-      + '">' + escapeHTML(content) + '</div>';
+      + '">' + linkify(content) + '</div>';
     if (id) wrapper.dataset.msgId = id;
     return wrapper;
   }
