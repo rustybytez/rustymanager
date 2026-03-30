@@ -26,13 +26,18 @@ func (h *Kanban) New(c echo.Context) error {
 	if err != nil {
 		return echo.ErrBadRequest
 	}
+	project, err := h.store.Queries().GetProject(context.Background(), projectID)
+	if err != nil {
+		return echo.ErrNotFound
+	}
 	users, err := h.store.Queries().ListUsers(context.Background())
 	if err != nil {
 		return err
 	}
 	return c.Render(http.StatusOK, "kanban/new.html", map[string]any{
-		"ProjectID": projectID,
-		"Users":     users,
+		"ProjectID":      projectID,
+		"CurrentProject": project,
+		"Users":          users,
 	})
 }
 

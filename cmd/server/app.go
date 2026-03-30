@@ -66,9 +66,6 @@ func (r *renderer) Render(w io.Writer, name string, data any, c echo.Context) er
 		if user := c.Get(authmw.CurrentUserKey); user != nil {
 			m["CurrentUser"] = user
 		}
-		if project := c.Get(authmw.CurrentProjectKey); project != nil {
-			m["CurrentProject"] = project
-		}
 		m["CSSVersion"] = r.cssVersion
 		m["SWVersion"] = r.swVersion
 	}
@@ -135,7 +132,6 @@ func newApp(dsn string) (*echo.Echo, error) {
 	// Auth-protected group
 	p := e.Group("")
 	p.Use(authmw.RequireAuth(s))
-	p.Use(authmw.LoadProject(s))
 	p.POST("/logout", a.Logout)
 
 	vapidPub, vapidPriv := loadVAPIDKeys()
@@ -158,12 +154,16 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.POST("/settings/api-token/revoke", settings.RevokeAPIToken)
 
 	h := handler.NewProjects(s)
-	p.GET("/select-project", h.SelectProjectPage)
-	p.POST("/select-project", h.SelectProject)
-	p.POST("/switch-project", h.SwitchProject)
+	p.GET("/", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/projects")
+	})
 	p.GET("/projects", h.Index)
 	p.GET("/projects/new", h.New)
 	p.POST("/projects", h.Create)
+	p.GET("/projects/:id", h.Show)
+	p.GET("/projects/:id/edit", h.Edit)
+	p.POST("/projects/:id", h.Update)
+	p.POST("/projects/:id/delete", h.Delete)
 
 	u := handler.NewUsers(s)
 	p.GET("/users", u.Index)
@@ -171,25 +171,12 @@ func newApp(dsn string) (*echo.Echo, error) {
 	p.POST("/users/:id", u.Update)
 	p.POST("/users/:id/delete", u.Delete)
 
-	// Routes that require a project to be selected
-	rp := p.Group("")
-	rp.Use(authmw.RequireProject())
-
-	rp.GET("/", func(c echo.Context) error {
-		proj := c.Get(authmw.CurrentProjectKey).(db.Project)
-		return c.Redirect(http.StatusFound, fmt.Sprintf("/projects/%d", proj.ID))
-	})
-	rp.GET("/projects/:id", h.Show)
-	rp.GET("/projects/:id/edit", h.Edit)
-	rp.POST("/projects/:id", h.Update)
-	rp.POST("/projects/:id/delete", h.Delete)
-
 	k := handler.NewKanban(s)
-	rp.GET("/projects/:id/kanban/new", k.New)
-	rp.POST("/projects/:id/kanban", k.Create)
-	rp.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
-	rp.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
-	rp.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
+	p.GET("/projects/:id/kanban/new", k.New)
+	p.POST("/projects/:id/kanban", k.Create)
+	p.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
+	p.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
+	p.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
 
 	uploadsDir := os.Getenv("UPLOADS_DIR")
 	if uploadsDir == "" {
