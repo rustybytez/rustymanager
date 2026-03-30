@@ -374,6 +374,39 @@ func (ch *ChatChannel) HandleHistory(c echo.Context) error {
 	return c.JSON(200, msgs)
 }
 
+// HandleAttachments returns all image attachments for a project as JSON.
+func (ch *ChatChannel) HandleAttachments(c echo.Context) error {
+	projectID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+
+	rows, err := ch.queries.ListChatAttachmentsByProject(c.Request().Context(), projectID)
+	if err != nil {
+		return err
+	}
+
+	type attachment struct {
+		ID            int64  `json:"id"`
+		AttachmentURL string `json:"attachment_url"`
+		Content       string `json:"content"`
+		UserName      string `json:"user_name"`
+		CreatedAt     string `json:"created_at"`
+	}
+
+	out := make([]attachment, len(rows))
+	for i, r := range rows {
+		out[i] = attachment{
+			ID:            r.ID,
+			AttachmentURL: r.AttachmentUrl,
+			Content:       r.Content,
+			UserName:      r.UserName,
+			CreatedAt:     r.CreatedAt.Format(time.RFC3339),
+		}
+	}
+	return c.JSON(200, out)
+}
+
 func (c *chatClient) writePump(ctx context.Context) {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {

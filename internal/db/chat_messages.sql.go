@@ -71,6 +71,54 @@ func (q *Queries) GetActiveCallForProject(ctx context.Context, projectID int64) 
 	return i, err
 }
 
+const listChatAttachmentsByProject = `-- name: ListChatAttachmentsByProject :many
+SELECT cm.id, cm.attachment_url, cm.attachment_type, cm.content, cm.created_at,
+       COALESCE(u.name, 'Anonymous') AS user_name
+FROM chat_messages cm
+LEFT JOIN users u ON cm.user_id = u.id
+WHERE cm.project_id = ? AND cm.attachment_url != ''
+ORDER BY cm.created_at DESC
+`
+
+type ListChatAttachmentsByProjectRow struct {
+	ID             int64     `json:"id"`
+	AttachmentUrl  string    `json:"attachment_url"`
+	AttachmentType string    `json:"attachment_type"`
+	Content        string    `json:"content"`
+	CreatedAt      time.Time `json:"created_at"`
+	UserName       string    `json:"user_name"`
+}
+
+func (q *Queries) ListChatAttachmentsByProject(ctx context.Context, projectID int64) ([]ListChatAttachmentsByProjectRow, error) {
+	rows, err := q.db.QueryContext(ctx, listChatAttachmentsByProject, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListChatAttachmentsByProjectRow
+	for rows.Next() {
+		var i ListChatAttachmentsByProjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AttachmentUrl,
+			&i.AttachmentType,
+			&i.Content,
+			&i.CreatedAt,
+			&i.UserName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChatMessagesBefore = `-- name: ListChatMessagesBefore :many
 SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name,
        cm.attachment_url, cm.attachment_type, cm.created_at,

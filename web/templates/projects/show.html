@@ -1,7 +1,12 @@
 {{ define "content" }}
 <div class="h-[calc(100dvh-7rem)] flex flex-col">
-  <!-- Chat header -->
-  <div class="flex items-center justify-end shrink-0 pb-2">
+  <!-- Tab bar -->
+  <div class="flex items-center shrink-0 pb-2 gap-1">
+    <div role="tablist" class="tabs tabs-box tabs-sm flex-1">
+      <button role="tab" class="tab tab-active" data-tab="chat">Chat</button>
+      <button role="tab" class="tab" data-tab="images">Images</button>
+      <button role="tab" class="tab" data-tab="kanban">Kanban</button>
+    </div>
     <button id="call-btn" class="btn btn-sm btn-ghost gap-1" onclick="startCall()">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -10,38 +15,135 @@
     </button>
   </div>
 
-  <!-- Chat messages -->
-  <div id="chat-area" class="relative flex-1 mb-3">
-    <div id="chat-messages" class="absolute inset-0 bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-2"></div>
-    <div id="drop-overlay" class="hidden absolute inset-0 rounded-xl bg-black/50 border-2 border-dashed border-primary z-20 flex flex-col items-center justify-center gap-3 pointer-events-none">
-      <img id="drop-preview" class="max-h-48 max-w-[80%] rounded-xl object-contain shadow-lg" src="" alt="" />
-      <span class="text-white font-semibold text-sm">Drop to attach</span>
+  <!-- Tab: Chat (default) -->
+  <div id="tab-chat" class="flex-1 flex flex-col min-h-0">
+    <div id="chat-area" class="relative flex-1">
+      <div id="chat-messages" class="absolute inset-0 bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-2"></div>
+      <div id="drop-overlay" class="hidden absolute inset-0 rounded-xl bg-black/50 border-2 border-dashed border-primary z-20 flex flex-col items-center justify-center gap-3 pointer-events-none">
+        <img id="drop-preview" class="max-h-48 max-w-[80%] rounded-xl object-contain shadow-lg hidden" src="" alt="" />
+        <span class="text-white font-semibold text-sm">Drop to attach</span>
+      </div>
+    </div>
+
+    <div id="call-banner" class="hidden alert alert-success py-2 px-3 flex items-center gap-2 shrink-0 my-2 rounded-xl"></div>
+
+    <div id="attachment-preview" class="hidden shrink-0 mt-2 bg-base-200 rounded-xl p-2 items-start gap-2">
+      <img id="attachment-thumb" class="max-h-32 rounded-lg object-contain" src="" alt="preview" />
+      <button id="attachment-remove" class="btn btn-ghost btn-xs btn-square shrink-0" title="Remove">✕</button>
+    </div>
+
+    <div class="join w-full shrink-0 mt-2">
+      <label class="btn btn-ghost btn-sm join-item px-2" title="Attach image">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+        <input id="file-input" type="file" accept="image/*" class="hidden" />
+      </label>
+      <input id="chat-input" type="text" placeholder="Type a message…" class="input input-sm join-item flex-1 text-base" />
+      <button id="chat-send" class="btn btn-primary btn-sm join-item">Send</button>
     </div>
   </div>
 
-  <!-- Active call banner (shown to users who connect while a call is in progress) -->
-  <div id="call-banner" class="hidden alert alert-success py-2 px-3 flex items-center gap-2 shrink-0 mb-2 rounded-xl"></div>
-
-  <!-- Attachment preview (hidden until a file is selected/pasted) -->
-  <div id="attachment-preview" class="hidden shrink-0 mb-2 bg-base-200 rounded-xl p-2 items-start gap-2">
-    <img id="attachment-thumb" class="max-h-32 rounded-lg object-contain" src="" alt="preview" />
-    <button id="attachment-remove" class="btn btn-ghost btn-xs btn-square shrink-0" title="Remove">✕</button>
+  <!-- Tab: Images (hidden) -->
+  <div id="tab-images" class="hidden flex-1 min-h-0">
+    <div id="images-grid" class="h-full overflow-y-auto bg-base-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 content-start"></div>
   </div>
 
-  <!-- Chat input -->
-  <div class="join w-full shrink-0">
-    <label class="btn btn-ghost btn-sm join-item px-2" title="Attach image">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-      </svg>
-      <input id="file-input" type="file" accept="image/*" class="hidden" />
-    </label>
-    <input id="chat-input" type="text" placeholder="Type a message…" class="input input-sm join-item flex-1 text-base" />
-    <button id="chat-send" class="btn btn-primary btn-sm join-item">Send</button>
+  <!-- Tab: Kanban (hidden) -->
+  <div id="tab-kanban" class="hidden flex-1 min-h-0">
+    <div class="h-full bg-base-200 rounded-xl p-4 flex flex-col gap-3">
+      <div class="grid grid-cols-3 gap-4 flex-1 min-h-0">
+
+      <!-- To Do -->
+      <div class="bg-base-100 rounded-xl p-4 flex flex-col overflow-hidden">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">To Do</h3>
+          <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-xs btn-primary">+ Add</a>
+        </div>
+        <div class="flex flex-col gap-2 overflow-y-auto flex-1">
+          {{ range .Items }}{{ if eq .Status "todo" }}
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-3">
+              <p class="font-medium text-sm">{{ .Title }}</p>
+              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+              <div class="flex gap-1 mt-2 justify-end">
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="in_progress" />
+                  <button class="btn btn-xs btn-ghost">→ In Progress</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {{ end }}{{ end }}
+        </div>
+      </div>
+
+      <!-- In Progress -->
+      <div class="bg-base-100 rounded-xl p-4 flex flex-col overflow-hidden">
+        <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60 mb-3">In Progress</h3>
+        <div class="flex flex-col gap-2 overflow-y-auto flex-1">
+          {{ range .Items }}{{ if eq .Status "in_progress" }}
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-3">
+              <p class="font-medium text-sm">{{ .Title }}</p>
+              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
+              <div class="flex gap-1 mt-2 justify-end">
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="todo" />
+                  <button class="btn btn-xs btn-ghost">← To Do</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="done" />
+                  <button class="btn btn-xs btn-ghost">→ Done</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {{ end }}{{ end }}
+        </div>
+      </div>
+
+      <!-- Done -->
+      <div class="bg-base-100 rounded-xl p-4 flex flex-col overflow-hidden">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Done</h3>
+          <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/done/delete-all">
+            <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete all done items?')">Delete All</button>
+          </form>
+        </div>
+        <div class="flex flex-col gap-2 overflow-y-auto flex-1">
+          {{ range .Items }}{{ if eq .Status "done" }}
+          <div class="card bg-base-200 shadow-sm border border-success/20">
+            <div class="card-body p-3">
+              <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
+              {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
+              <div class="flex gap-1 mt-2 justify-end">
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
+                  <input type="hidden" name="status" value="in_progress" />
+                  <button class="btn btn-xs btn-ghost">← In Progress</button>
+                </form>
+                <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
+                  <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {{ end }}{{ end }}
+        </div>
+      </div>
+
+      </div><!-- /grid -->
+    </div>
   </div>
 </div>
 
-<!-- Call panel (slides in from right, behind kanban) -->
+<!-- Call panel (slides in from right) -->
 <div id="call-panel" class="fixed top-0 right-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-30 flex flex-col translate-x-full transition-transform duration-300 ease-in-out">
   <div class="flex items-center gap-2 px-4 pt-6 pb-3 border-b border-base-300 shrink-0">
     <h2 class="font-semibold text-lg flex-1">📞 Video Call</h2>
@@ -51,119 +153,70 @@
   <div id="jitsi-container" class="flex-1"></div>
 </div>
 
-<!-- Kanban backdrop -->
-<div id="kanban-backdrop" onclick="closeKanban()" class="fixed inset-0 bg-black/40 z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-
-<!-- Kanban drawer (slides in from right) -->
-<div id="kanban-drawer" class="fixed top-0 right-0 h-full w-full max-w-lg bg-base-100 shadow-2xl z-40 flex flex-col translate-x-full transition-transform duration-300 ease-in-out">
-  <div class="flex items-center gap-2 px-4 pt-6 pb-3 border-b border-base-300 shrink-0">
-    <h2 class="font-semibold text-lg flex-1">Kanban</h2>
-    <a href="/projects/{{ .Project.ID }}/kanban/new" class="btn btn-primary btn-sm">+ Add</a>
-    <button onclick="closeKanban()" class="btn btn-ghost btn-sm btn-square text-base-content/60">✕</button>
-  </div>
-  <div class="overflow-y-auto flex-1 p-4 flex flex-col gap-4">
-
-    <!-- To Do -->
-    <div class="bg-base-200 rounded-xl p-4">
-      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60 mb-3">To Do</h3>
-      <div class="flex flex-col gap-2">
-        {{ range .Items }}{{ if eq .Status "todo" }}
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body p-3">
-            <p class="font-medium text-sm">{{ .Title }}</p>
-            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
-            <div class="flex gap-1 mt-2 justify-end">
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="in_progress" />
-                <button class="btn btn-xs btn-ghost">→ In Progress</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-              </form>
-            </div>
-          </div>
-        </div>
-        {{ end }}{{ end }}
-      </div>
-    </div>
-
-    <!-- In Progress -->
-    <div class="bg-base-200 rounded-xl p-4">
-      <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60 mb-3">In Progress</h3>
-      <div class="flex flex-col gap-2">
-        {{ range .Items }}{{ if eq .Status "in_progress" }}
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body p-3">
-            <p class="font-medium text-sm">{{ .Title }}</p>
-            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/50">{{ .AssigneeName.String }}</p>{{ end }}
-            <div class="flex gap-1 mt-2 justify-end">
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="todo" />
-                <button class="btn btn-xs btn-ghost">← To Do</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="done" />
-                <button class="btn btn-xs btn-ghost">→ Done</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-              </form>
-            </div>
-          </div>
-        </div>
-        {{ end }}{{ end }}
-      </div>
-    </div>
-
-    <!-- Done -->
-    <div class="bg-base-200 rounded-xl p-4">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Done</h3>
-        <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/done/delete-all">
-          <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete all done items?')">Delete All</button>
-        </form>
-      </div>
-      <div class="flex flex-col gap-2">
-        {{ range .Items }}{{ if eq .Status "done" }}
-        <div class="card bg-base-100 shadow-sm border border-success/20">
-          <div class="card-body p-3">
-            <p class="font-medium text-sm line-through text-base-content/50">{{ .Title }}</p>
-            {{ if .AssigneeName.Valid }}<p class="text-xs text-base-content/40">{{ .AssigneeName.String }}</p>{{ end }}
-            <div class="flex gap-1 mt-2 justify-end">
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/status">
-                <input type="hidden" name="status" value="in_progress" />
-                <button class="btn btn-xs btn-ghost">← In Progress</button>
-              </form>
-              <form method="POST" action="/projects/{{ $.Project.ID }}/kanban/{{ .ID }}/delete">
-                <button class="btn btn-xs btn-ghost text-error" onclick="return confirm('Delete this item?')">✕</button>
-              </form>
-            </div>
-          </div>
-        </div>
-        {{ end }}{{ end }}
-      </div>
-    </div>
-
-  </div>
-</div>
-
 <script>
-function openKanban() {
-  document.getElementById('kanban-drawer').classList.remove('translate-x-full');
-  var bd = document.getElementById('kanban-backdrop');
-  bd.classList.remove('opacity-0', 'pointer-events-none');
-  document.body.style.overflow = 'hidden';
-}
+// --- Tab switching ---
+(function() {
+  var tabs = document.querySelectorAll('[data-tab]');
+  var panels = {
+    chat: document.getElementById('tab-chat'),
+    images: document.getElementById('tab-images'),
+    kanban: document.getElementById('tab-kanban'),
+  };
+  var imagesLoaded = false;
 
-function closeKanban() {
-  document.getElementById('kanban-drawer').classList.add('translate-x-full');
-  var bd = document.getElementById('kanban-backdrop');
-  bd.classList.add('opacity-0', 'pointer-events-none');
-  document.body.style.overflow = '';
-}
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.dataset.tab;
+      tabs.forEach(function(t) { t.classList.remove('tab-active'); });
+      tab.classList.add('tab-active');
+      Object.keys(panels).forEach(function(key) {
+        panels[key].classList.toggle('hidden', key !== target);
+        if (key === target) panels[key].classList.add('flex');
+        else panels[key].classList.remove('flex');
+      });
+      if (target === 'images' && !imagesLoaded) {
+        imagesLoaded = true;
+        loadImages();
+      }
+    });
+  });
+
+  function loadImages() {
+    var grid = document.getElementById('images-grid');
+    grid.innerHTML = '<div class="col-span-full text-center text-base-content/40 text-sm py-8">Loading…</div>';
+    fetch('/projects/{{ .Project.ID }}/chat/attachments')
+      .then(function(r) { return r.json(); })
+      .then(function(items) {
+        grid.innerHTML = '';
+        if (!items || items.length === 0) {
+          grid.innerHTML = '<div class="col-span-full text-center text-base-content/40 text-sm py-8">No images yet</div>';
+          return;
+        }
+        items.forEach(function(item) {
+          var card = document.createElement('div');
+          card.className = 'group relative rounded-xl overflow-hidden bg-base-100 shadow-sm cursor-pointer aspect-square';
+          var time = new Date(item.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+          card.innerHTML =
+            '<img src="' + item.attachment_url + '" class="w-full h-full object-cover" alt="" />'
+            + '<div class="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">'
+            + '<div class="font-medium">' + item.user_name + '</div>'
+            + '<div class="text-white/70">' + time + '</div>'
+            + '</div>';
+          card.addEventListener('click', function() { window.open(item.attachment_url); });
+          grid.appendChild(card);
+        });
+      })
+      .catch(function() {
+        grid.innerHTML = '<div class="col-span-full text-center text-error text-sm py-8">Failed to load images</div>';
+      });
+  }
+
+  // Expose for refreshing after a new upload
+  window.reloadImagesTab = function() { imagesLoaded = false; };
+})();
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeKanban(); closeCallPanel(); }
+  if (e.key === 'Escape') { closeCallPanel(); }
 });
 
 (function () {
@@ -211,6 +264,7 @@ document.addEventListener('keydown', function(e) {
       } else if (msg.type === 'message') {
         appendMessage(msg.user_id, msg.user_name, msg.content, msg.created_at, msg.id, msg.attachment_url, msg.attachment_type);
         showNotification(msg);
+        if (msg.attachment_url) window.reloadImagesTab();
       } else if (msg.type === 'call_start') {
         appendCallEvent(msg);
         if (!currentRoomName) showCallBanner(msg.room_name, msg.user_name);
@@ -456,7 +510,7 @@ document.addEventListener('keydown', function(e) {
   });
 
   var dragDepth = 0;
-  var chatMessages = document.getElementById('chat-area');
+  var chatArea = document.getElementById('chat-area');
   var dropOverlay = document.getElementById('drop-overlay');
   var dropPreview = document.getElementById('drop-preview');
 
@@ -480,23 +534,23 @@ document.addEventListener('keydown', function(e) {
     dropPreview.classList.add('hidden');
   }
 
-  chatMessages.addEventListener('dragenter', function(e) {
+  chatArea.addEventListener('dragenter', function(e) {
     e.preventDefault();
     if (!isDraggingImage(e)) return;
     dragDepth++;
     if (dragDepth === 1) showDropOverlay();
   });
 
-  chatMessages.addEventListener('dragleave', function() {
+  chatArea.addEventListener('dragleave', function() {
     dragDepth--;
     if (dragDepth === 0) hideDropOverlay();
   });
 
-  chatMessages.addEventListener('dragover', function(e) {
+  chatArea.addEventListener('dragover', function(e) {
     if (isDraggingImage(e)) e.preventDefault();
   });
 
-  chatMessages.addEventListener('drop', function(e) {
+  chatArea.addEventListener('drop', function(e) {
     e.preventDefault();
     dragDepth = 0;
     hideDropOverlay();
@@ -642,7 +696,6 @@ document.addEventListener('keydown', function(e) {
     if (isStart) {
       joinBtn = ' <button class="btn btn-xs btn-success ml-2" onclick="joinCall(\'' + msg.room_name + '\')">Join</button>';
     } else {
-      // Find the most recent matching call_start element to get start time and remove its Join button.
       var startEls = document.querySelectorAll('[data-call-type="call_start"][data-room-name="' + msg.room_name + '"]');
       var startEl = startEls.length > 0 ? startEls[startEls.length - 1] : null;
       if (startEl && startEl.dataset.createdAt) {

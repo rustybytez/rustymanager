@@ -24,6 +24,7 @@ type Querier interface {
 	GetUser(ctx context.Context, id int64) (User, error)
 	GetUserByAPIToken(ctx context.Context, apiToken sql.NullString) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	ListChatAttachmentsByProject(ctx context.Context, projectID int64) ([]ListChatAttachmentsByProjectRow, error)
 	ListChatMessagesBefore(ctx context.Context, arg ListChatMessagesBeforeParams) ([]ListChatMessagesBeforeRow, error)
 	ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error)
 	ListKanbanItemsByProject(ctx context.Context, projectID int64) ([]ListKanbanItemsByProjectRow, error)

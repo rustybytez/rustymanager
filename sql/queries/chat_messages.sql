@@ -23,6 +23,14 @@ INSERT INTO chat_messages (project_id, user_id, content, message_type, room_name
 VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
+-- name: ListChatAttachmentsByProject :many
+SELECT cm.id, cm.attachment_url, cm.attachment_type, cm.content, cm.created_at,
+       COALESCE(u.name, 'Anonymous') AS user_name
+FROM chat_messages cm
+LEFT JOIN users u ON cm.user_id = u.id
+WHERE cm.project_id = ? AND cm.attachment_url != ''
+ORDER BY cm.created_at DESC;
+
 -- name: GetActiveCallForProject :one
 SELECT room_name, message_type FROM chat_messages
 WHERE project_id = ? AND message_type IN ('call_start', 'call_end')

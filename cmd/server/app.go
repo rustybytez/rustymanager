@@ -205,6 +205,7 @@ func newApp(dsn string) (*echo.Echo, error) {
 	chat := handler.NewChatChannel(queries, pushSender)
 	p.GET("/projects/:id/ws", chat.HandleWS)
 	p.GET("/projects/:id/chat/history", chat.HandleHistory)
+	p.GET("/projects/:id/chat/attachments", chat.HandleAttachments)
 
 	jaas, err := handler.NewJaaSHandler()
 	if err != nil {
