@@ -11,13 +11,31 @@
   </div>
 
   <!-- Chat messages -->
-  <div id="chat-messages" class="bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-2 flex-1 mb-3"></div>
+  <div id="chat-area" class="relative flex-1 mb-3">
+    <div id="chat-messages" class="absolute inset-0 bg-base-200 rounded-xl p-4 overflow-y-auto flex flex-col gap-2"></div>
+    <div id="drop-overlay" class="hidden absolute inset-0 rounded-xl bg-black/50 border-2 border-dashed border-primary z-20 flex flex-col items-center justify-center gap-3 pointer-events-none">
+      <img id="drop-preview" class="max-h-48 max-w-[80%] rounded-xl object-contain shadow-lg" src="" alt="" />
+      <span class="text-white font-semibold text-sm">Drop to attach</span>
+    </div>
+  </div>
 
   <!-- Active call banner (shown to users who connect while a call is in progress) -->
   <div id="call-banner" class="hidden alert alert-success py-2 px-3 flex items-center gap-2 shrink-0 mb-2 rounded-xl"></div>
 
+  <!-- Attachment preview (hidden until a file is selected/pasted) -->
+  <div id="attachment-preview" class="hidden shrink-0 mb-2 bg-base-200 rounded-xl p-2 items-start gap-2">
+    <img id="attachment-thumb" class="max-h-32 rounded-lg object-contain" src="" alt="preview" />
+    <button id="attachment-remove" class="btn btn-ghost btn-xs btn-square shrink-0" title="Remove">✕</button>
+  </div>
+
   <!-- Chat input -->
   <div class="join w-full shrink-0">
+    <label class="btn btn-ghost btn-sm join-item px-2" title="Attach image">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+      </svg>
+      <input id="file-input" type="file" accept="image/*" class="hidden" />
+    </label>
     <input id="chat-input" type="text" placeholder="Type a message…" class="input input-sm join-item flex-1 text-base" />
     <button id="chat-send" class="btn btn-primary btn-sm join-item">Send</button>
   </div>
@@ -158,8 +176,10 @@ document.addEventListener('keydown', function(e) {
   function setConnected(ok) {
     var input = document.getElementById('chat-input');
     var send = document.getElementById('chat-send');
+    var fileInput = document.getElementById('file-input');
     input.disabled = !ok;
     send.disabled = !ok;
+    fileInput.disabled = !ok;
     input.placeholder = ok ? 'Type a message…' : '↺ Reconnecting…';
   }
 
@@ -179,7 +199,7 @@ document.addEventListener('keydown', function(e) {
           if (m.type === 'call_start' || m.type === 'call_end') {
             appendCallEvent(m);
           } else {
-            appendMessage(m.user_id, m.user_name, m.content, m.created_at, m.id);
+            appendMessage(m.user_id, m.user_name, m.content, m.created_at, m.id, m.attachment_url, m.attachment_type);
           }
         });
         if (msg.messages.length > 0) {
@@ -189,7 +209,7 @@ document.addEventListener('keydown', function(e) {
         const box = document.getElementById('chat-messages');
         box.scrollTop = box.scrollHeight;
       } else if (msg.type === 'message') {
-        appendMessage(msg.user_id, msg.user_name, msg.content, msg.created_at);
+        appendMessage(msg.user_id, msg.user_name, msg.content, msg.created_at, msg.id, msg.attachment_url, msg.attachment_type);
         showNotification(msg);
       } else if (msg.type === 'call_start') {
         appendCallEvent(msg);
@@ -331,7 +351,7 @@ document.addEventListener('keydown', function(e) {
           if (m.type === 'call_start' || m.type === 'call_end') {
             prependCallEvent(m);
           } else {
-            prependMessage(m.user_id, m.user_name, m.content, m.created_at, m.id);
+            prependMessage(m.user_id, m.user_name, m.content, m.created_at, m.id, m.attachment_url, m.attachment_type);
           }
         });
         box.scrollTop = box.scrollHeight - prevHeight;
@@ -347,9 +367,9 @@ document.addEventListener('keydown', function(e) {
       });
   }
 
-  function prependMessage(userId, userName, content, createdAt, id) {
+  function prependMessage(userId, userName, content, createdAt, id, attachmentUrl, attachmentType) {
     const box = document.getElementById('chat-messages');
-    const el = makeMsgEl(userId, userName, content, createdAt, id);
+    const el = makeMsgEl(userId, userName, content, createdAt, id, attachmentUrl, attachmentType);
     box.insertBefore(el, loadMoreBtn.nextSibling);
     if (id < oldestMessageID) oldestMessageID = id;
   }
@@ -366,19 +386,23 @@ document.addEventListener('keydown', function(e) {
     return escapeHTML(s).replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline opacity-80 hover:opacity-100 break-all">$1</a>');
   }
 
-  function appendMessage(userId, userName, content, createdAt, id) {
+  function appendMessage(userId, userName, content, createdAt, id, attachmentUrl, attachmentType) {
     const box = document.getElementById('chat-messages');
-    const el = makeMsgEl(userId, userName, content, createdAt, id);
+    const el = makeMsgEl(userId, userName, content, createdAt, id, attachmentUrl, attachmentType);
     box.appendChild(el);
     box.scrollTop = box.scrollHeight;
     if (id && (oldestMessageID === null || id < oldestMessageID)) oldestMessageID = id;
   }
 
-  function makeMsgEl(userId, userName, content, createdAt, id) {
+  function makeMsgEl(userId, userName, content, createdAt, id, attachmentUrl, attachmentType) {
     const isMine = userId === currentUserID;
     const time = new Date(createdAt).toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit' });
     const wrapper = document.createElement('div');
     wrapper.className = 'flex flex-col ' + (isMine ? 'items-end' : 'items-start');
+    var attachHTML = '';
+    if (attachmentUrl && attachmentType === 'image') {
+      attachHTML = '<img src="' + escapeHTML(attachmentUrl) + '" class="max-w-full rounded-lg mt-1 max-h-64 object-contain cursor-pointer" onclick="window.open(this.src)" alt="attachment" />';
+    }
     wrapper.innerHTML =
       '<div class="text-xs text-base-content/40 mb-0.5 px-1">'
         + (isMine ? '' : '<span class="font-medium text-base-content/60">' + escapeHTML(userName) + ' · </span>')
@@ -386,16 +410,127 @@ document.addEventListener('keydown', function(e) {
       + '</div>'
       + '<div class="max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-snug whitespace-pre-wrap break-words '
         + (isMine ? 'bg-primary text-primary-content rounded-br-sm' : 'bg-base-100 text-base-content rounded-bl-sm')
-      + '">' + linkify(content) + '</div>';
+      + '">' + (content ? linkify(content) : '') + attachHTML + '</div>';
     if (id) wrapper.dataset.msgId = id;
     return wrapper;
   }
 
-  function send() {
-    const input = document.getElementById('chat-input');
-    const content = input.value.trim();
-    if (!content) return;
-    ws.send(JSON.stringify({ type: 'message', user_id: currentUserID, content: content }));
+  var pendingFile = null;
+
+  function showAttachmentPreview(file) {
+    pendingFile = file;
+    var preview = document.getElementById('attachment-preview');
+    var thumb = document.getElementById('attachment-thumb');
+    var reader = new FileReader();
+    reader.onload = function(e) { thumb.src = e.target.result; };
+    reader.readAsDataURL(file);
+    preview.classList.remove('hidden');
+    preview.classList.add('flex');
+  }
+
+  function clearAttachment() {
+    pendingFile = null;
+    var preview = document.getElementById('attachment-preview');
+    preview.classList.add('hidden');
+    preview.classList.remove('flex');
+    document.getElementById('attachment-thumb').src = '';
+    document.getElementById('file-input').value = '';
+  }
+
+  document.getElementById('attachment-remove').addEventListener('click', clearAttachment);
+
+  document.getElementById('file-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (file) showAttachmentPreview(file);
+  });
+
+  document.addEventListener('paste', function(e) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image/') === 0) {
+        var file = items[i].getAsFile();
+        if (file) { showAttachmentPreview(file); break; }
+      }
+    }
+  });
+
+  var dragDepth = 0;
+  var chatMessages = document.getElementById('chat-area');
+  var dropOverlay = document.getElementById('drop-overlay');
+  var dropPreview = document.getElementById('drop-preview');
+
+  function isDraggingImage(e) {
+    var items = e.dataTransfer && e.dataTransfer.items;
+    if (!items) return false;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) return true;
+    }
+    return false;
+  }
+
+  function showDropOverlay() {
+    dropPreview.classList.add('hidden');
+    dropOverlay.classList.remove('hidden');
+  }
+
+  function hideDropOverlay() {
+    dropOverlay.classList.add('hidden');
+    dropPreview.src = '';
+    dropPreview.classList.add('hidden');
+  }
+
+  chatMessages.addEventListener('dragenter', function(e) {
+    e.preventDefault();
+    if (!isDraggingImage(e)) return;
+    dragDepth++;
+    if (dragDepth === 1) showDropOverlay();
+  });
+
+  chatMessages.addEventListener('dragleave', function() {
+    dragDepth--;
+    if (dragDepth === 0) hideDropOverlay();
+  });
+
+  chatMessages.addEventListener('dragover', function(e) {
+    if (isDraggingImage(e)) e.preventDefault();
+  });
+
+  chatMessages.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dragDepth = 0;
+    hideDropOverlay();
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    var file = files[0];
+    if (file.type.indexOf('image/') === 0) showAttachmentPreview(file);
+  });
+
+  async function send() {
+    var input = document.getElementById('chat-input');
+    var content = input.value.trim();
+    if (!content && !pendingFile) return;
+
+    var attachmentUrl = '';
+    var attachmentType = '';
+
+    if (pendingFile) {
+      var fd = new FormData();
+      fd.append('file', pendingFile);
+      try {
+        var res = await fetch('/projects/' + projectID + '/chat/upload', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('upload failed: ' + res.status);
+        var data = await res.json();
+        attachmentUrl = data.url;
+        attachmentType = 'image';
+      } catch (err) {
+        console.error('upload failed:', err);
+        return;
+      }
+      clearAttachment();
+    }
+
+    ws.send(JSON.stringify({ type: 'message', user_id: currentUserID, content: content, attachment_url: attachmentUrl, attachment_type: attachmentType }));
     input.value = '';
   }
 

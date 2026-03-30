@@ -61,3 +61,6 @@ ALTER TABLE chat_messages ADD COLUMN message_type TEXT NOT NULL DEFAULT 'message
 ALTER TABLE chat_messages ADD COLUMN room_name TEXT NOT NULL DEFAULT '';
 
 ALTER TABLE push_subscriptions ADD COLUMN user_id INTEGER REFERENCES users(id);
+
+ALTER TABLE chat_messages ADD COLUMN attachment_url  TEXT NOT NULL DEFAULT '';
+ALTER TABLE chat_messages ADD COLUMN attachment_type TEXT NOT NULL DEFAULT '';

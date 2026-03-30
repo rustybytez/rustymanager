@@ -10,13 +10,15 @@ import (
 )
 
 type ChatMessage struct {
-	ID          int64         `json:"id"`
-	ProjectID   int64         `json:"project_id"`
-	UserID      sql.NullInt64 `json:"user_id"`
-	Content     string        `json:"content"`
-	MessageType string        `json:"message_type"`
-	RoomName    string        `json:"room_name"`
-	CreatedAt   time.Time     `json:"created_at"`
+	ID             int64         `json:"id"`
+	ProjectID      int64         `json:"project_id"`
+	UserID         sql.NullInt64 `json:"user_id"`
+	Content        string        `json:"content"`
+	MessageType    string        `json:"message_type"`
+	RoomName       string        `json:"room_name"`
+	CreatedAt      time.Time     `json:"created_at"`
+	AttachmentUrl  string        `json:"attachment_url"`
+	AttachmentType string        `json:"attachment_type"`
 }
 
 type KanbanItem struct {

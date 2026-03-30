@@ -50,21 +50,25 @@ type chatClient struct {
 
 // incomingMsg is what the browser sends.
 type incomingMsg struct {
-	Type     string `json:"type"` // "message" | "call_start" | "call_end"
-	UserID   int64  `json:"user_id"`
-	Content  string `json:"content"`
-	RoomName string `json:"room_name"` // for call events
+	Type           string `json:"type"` // "message" | "call_start" | "call_end"
+	UserID         int64  `json:"user_id"`
+	Content        string `json:"content"`
+	RoomName       string `json:"room_name"` // for call events
+	AttachmentURL  string `json:"attachment_url"`
+	AttachmentType string `json:"attachment_type"`
 }
 
 // outgoingMsg is what the server sends for a single message.
 type outgoingMsg struct {
-	Type      string `json:"type"`
-	ID        int64  `json:"id"`
-	UserID    int64  `json:"user_id"`
-	UserName  string `json:"user_name"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
-	RoomName  string `json:"room_name,omitempty"`
+	Type           string `json:"type"`
+	ID             int64  `json:"id"`
+	UserID         int64  `json:"user_id"`
+	UserName       string `json:"user_name"`
+	Content        string `json:"content"`
+	CreatedAt      string `json:"created_at"`
+	RoomName       string `json:"room_name,omitempty"`
+	AttachmentURL  string `json:"attachment_url,omitempty"`
+	AttachmentType string `json:"attachment_type,omitempty"`
 }
 
 // historyMsg is the initial payload sent on connect.
@@ -138,13 +142,15 @@ func (ch *ChatChannel) HandleWS(c echo.Context) error {
 		msgs := make([]outgoingMsg, len(rows))
 		for i, r := range rows {
 			msgs[len(rows)-1-i] = outgoingMsg{
-				Type:      r.MessageType,
-				ID:        r.ID,
-				UserID:    r.UserID.Int64,
-				UserName:  r.UserName,
-				Content:   r.Content,
-				CreatedAt: r.CreatedAt.Format(time.RFC3339),
-				RoomName:  r.RoomName,
+				Type:           r.MessageType,
+				ID:             r.ID,
+				UserID:         r.UserID.Int64,
+				UserName:       r.UserName,
+				Content:        r.Content,
+				CreatedAt:      r.CreatedAt.Format(time.RFC3339),
+				RoomName:       r.RoomName,
+				AttachmentURL:  r.AttachmentUrl,
+				AttachmentType: r.AttachmentType,
 			}
 		}
 		if b, err := json.Marshal(historyMsg{Type: "history", Messages: msgs}); err == nil {
@@ -212,7 +218,7 @@ func (c *chatClient) readPump(ctx context.Context) {
 			c.ch.handleCallEvent(ctx, c, in)
 		default:
 			// "message" or legacy (no type field)
-			if in.Content == "" {
+			if in.Content == "" && in.AttachmentURL == "" {
 				continue
 			}
 			c.ch.handleChatMessage(ctx, c, in)
@@ -227,11 +233,13 @@ func (ch *ChatChannel) handleChatMessage(ctx context.Context, c *chatClient, in 
 	}
 
 	saved, err := ch.queries.CreateChatMessage(ctx, db.CreateChatMessageParams{
-		ProjectID:   c.projectID,
-		UserID:      userID,
-		Content:     in.Content,
-		MessageType: "message",
-		RoomName:    "",
+		ProjectID:      c.projectID,
+		UserID:         userID,
+		Content:        in.Content,
+		MessageType:    "message",
+		RoomName:       "",
+		AttachmentUrl:  in.AttachmentURL,
+		AttachmentType: in.AttachmentType,
 	})
 	if err != nil {
 		log.Printf("chat: save message: %v", err)
@@ -246,12 +254,14 @@ func (ch *ChatChannel) handleChatMessage(ctx context.Context, c *chatClient, in 
 	}
 
 	out := outgoingMsg{
-		Type:      "message",
-		ID:        saved.ID,
-		UserID:    userID.Int64,
-		UserName:  userName,
-		Content:   saved.Content,
-		CreatedAt: saved.CreatedAt.Format(time.RFC3339),
+		Type:           "message",
+		ID:             saved.ID,
+		UserID:         userID.Int64,
+		UserName:       userName,
+		Content:        saved.Content,
+		CreatedAt:      saved.CreatedAt.Format(time.RFC3339),
+		AttachmentURL:  saved.AttachmentUrl,
+		AttachmentType: saved.AttachmentType,
 	}
 	b, err := json.Marshal(out)
 	if err != nil {
@@ -350,13 +360,15 @@ func (ch *ChatChannel) HandleHistory(c echo.Context) error {
 	msgs := make([]outgoingMsg, len(rows))
 	for i, r := range rows {
 		msgs[len(rows)-1-i] = outgoingMsg{
-			Type:      r.MessageType,
-			ID:        r.ID,
-			UserID:    r.UserID.Int64,
-			UserName:  r.UserName,
-			Content:   r.Content,
-			CreatedAt: r.CreatedAt.Format(time.RFC3339),
-			RoomName:  r.RoomName,
+			Type:           r.MessageType,
+			ID:             r.ID,
+			UserID:         r.UserID.Int64,
+			UserName:       r.UserName,
+			Content:        r.Content,
+			CreatedAt:      r.CreatedAt.Format(time.RFC3339),
+			RoomName:       r.RoomName,
+			AttachmentURL:  r.AttachmentUrl,
+			AttachmentType: r.AttachmentType,
 		}
 	}
 	return c.JSON(200, msgs)

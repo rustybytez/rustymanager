@@ -16,6 +16,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"rustymanager/internal/db"
+	"rustymanager/internal/filestore"
 	"rustymanager/internal/handler"
 	mcphandler "rustymanager/internal/mcp"
 	authmw "rustymanager/internal/middleware"
@@ -189,6 +190,17 @@ func newApp(dsn string) (*echo.Echo, error) {
 	rp.POST("/projects/:id/kanban/:itemID/status", k.UpdateStatus)
 	rp.POST("/projects/:id/kanban/:itemID/delete", k.Delete)
 	rp.POST("/projects/:id/kanban/done/delete-all", k.DeleteAllDone)
+
+	uploadsDir := os.Getenv("UPLOADS_DIR")
+	if uploadsDir == "" {
+		uploadsDir = "uploads"
+	}
+	uploadStore, err := filestore.New(uploadsDir)
+	if err != nil {
+		return nil, fmt.Errorf("filestore: %w", err)
+	}
+	e.Static("/uploads", uploadsDir)
+	p.POST("/projects/:id/chat/upload", filestore.NewHandler(uploadStore).Upload)
 
 	chat := handler.NewChatChannel(queries, pushSender)
 	p.GET("/projects/:id/ws", chat.HandleWS)

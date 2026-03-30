@@ -12,17 +12,19 @@ import (
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
-INSERT INTO chat_messages (project_id, user_id, content, message_type, room_name)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, project_id, user_id, content, message_type, room_name, created_at
+INSERT INTO chat_messages (project_id, user_id, content, message_type, room_name, attachment_url, attachment_type)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, project_id, user_id, content, message_type, room_name, created_at, attachment_url, attachment_type
 `
 
 type CreateChatMessageParams struct {
-	ProjectID   int64         `json:"project_id"`
-	UserID      sql.NullInt64 `json:"user_id"`
-	Content     string        `json:"content"`
-	MessageType string        `json:"message_type"`
-	RoomName    string        `json:"room_name"`
+	ProjectID      int64         `json:"project_id"`
+	UserID         sql.NullInt64 `json:"user_id"`
+	Content        string        `json:"content"`
+	MessageType    string        `json:"message_type"`
+	RoomName       string        `json:"room_name"`
+	AttachmentUrl  string        `json:"attachment_url"`
+	AttachmentType string        `json:"attachment_type"`
 }
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
@@ -32,6 +34,8 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		arg.Content,
 		arg.MessageType,
 		arg.RoomName,
+		arg.AttachmentUrl,
+		arg.AttachmentType,
 	)
 	var i ChatMessage
 	err := row.Scan(
@@ -42,6 +46,8 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		&i.MessageType,
 		&i.RoomName,
 		&i.CreatedAt,
+		&i.AttachmentUrl,
+		&i.AttachmentType,
 	)
 	return i, err
 }
@@ -66,7 +72,8 @@ func (q *Queries) GetActiveCallForProject(ctx context.Context, projectID int64) 
 }
 
 const listChatMessagesBefore = `-- name: ListChatMessagesBefore :many
-SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name, cm.created_at,
+SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name,
+       cm.attachment_url, cm.attachment_type, cm.created_at,
        COALESCE(u.name, 'Anonymous') AS user_name
 FROM chat_messages cm
 LEFT JOIN users u ON cm.user_id = u.id
@@ -81,14 +88,16 @@ type ListChatMessagesBeforeParams struct {
 }
 
 type ListChatMessagesBeforeRow struct {
-	ID          int64         `json:"id"`
-	ProjectID   int64         `json:"project_id"`
-	UserID      sql.NullInt64 `json:"user_id"`
-	Content     string        `json:"content"`
-	MessageType string        `json:"message_type"`
-	RoomName    string        `json:"room_name"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UserName    string        `json:"user_name"`
+	ID             int64         `json:"id"`
+	ProjectID      int64         `json:"project_id"`
+	UserID         sql.NullInt64 `json:"user_id"`
+	Content        string        `json:"content"`
+	MessageType    string        `json:"message_type"`
+	RoomName       string        `json:"room_name"`
+	AttachmentUrl  string        `json:"attachment_url"`
+	AttachmentType string        `json:"attachment_type"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UserName       string        `json:"user_name"`
 }
 
 func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessagesBeforeParams) ([]ListChatMessagesBeforeRow, error) {
@@ -107,6 +116,8 @@ func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessag
 			&i.Content,
 			&i.MessageType,
 			&i.RoomName,
+			&i.AttachmentUrl,
+			&i.AttachmentType,
 			&i.CreatedAt,
 			&i.UserName,
 		); err != nil {
@@ -124,7 +135,8 @@ func (q *Queries) ListChatMessagesBefore(ctx context.Context, arg ListChatMessag
 }
 
 const listChatMessagesByProject = `-- name: ListChatMessagesByProject :many
-SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name, cm.created_at,
+SELECT cm.id, cm.project_id, cm.user_id, cm.content, cm.message_type, cm.room_name,
+       cm.attachment_url, cm.attachment_type, cm.created_at,
        COALESCE(u.name, 'Anonymous') AS user_name
 FROM chat_messages cm
 LEFT JOIN users u ON cm.user_id = u.id
@@ -134,14 +146,16 @@ LIMIT 100
 `
 
 type ListChatMessagesByProjectRow struct {
-	ID          int64         `json:"id"`
-	ProjectID   int64         `json:"project_id"`
-	UserID      sql.NullInt64 `json:"user_id"`
-	Content     string        `json:"content"`
-	MessageType string        `json:"message_type"`
-	RoomName    string        `json:"room_name"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UserName    string        `json:"user_name"`
+	ID             int64         `json:"id"`
+	ProjectID      int64         `json:"project_id"`
+	UserID         sql.NullInt64 `json:"user_id"`
+	Content        string        `json:"content"`
+	MessageType    string        `json:"message_type"`
+	RoomName       string        `json:"room_name"`
+	AttachmentUrl  string        `json:"attachment_url"`
+	AttachmentType string        `json:"attachment_type"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UserName       string        `json:"user_name"`
 }
 
 func (q *Queries) ListChatMessagesByProject(ctx context.Context, projectID int64) ([]ListChatMessagesByProjectRow, error) {
@@ -160,6 +174,8 @@ func (q *Queries) ListChatMessagesByProject(ctx context.Context, projectID int64
 			&i.Content,
 			&i.MessageType,
 			&i.RoomName,
+			&i.AttachmentUrl,
+			&i.AttachmentType,
 			&i.CreatedAt,
 			&i.UserName,
 		); err != nil {
